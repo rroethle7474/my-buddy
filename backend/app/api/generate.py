@@ -10,8 +10,8 @@ from __future__ import annotations
 from fastapi import APIRouter, status
 
 from ..schemas.dtos import (
+    AgentTurn,
     GenerateMessageCreate,
-    GenerateMessageReply,
     GenerateSessionCreate,
     GenerateSessionStart,
     ProjectRead,
@@ -34,12 +34,10 @@ def start_session(body: GenerateSessionCreate) -> GenerateSessionStart:
 
 @router.post(
     "/sessions/{session_id}/messages",
-    response_model=GenerateMessageReply,
+    response_model=AgentTurn,
     summary="Send one user turn, get the agent's reply (mock 1e)",
 )
-def send_message(
-    session_id: str, body: GenerateMessageCreate
-) -> GenerateMessageReply:
+def send_message(session_id: str, body: GenerateMessageCreate) -> AgentTurn:
     not_implemented()
 
 

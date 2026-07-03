@@ -321,19 +321,48 @@ export interface components {
          */
         BudgetBand: "under_30" | "30_to_75" | "over_75";
         /**
-         * CandidateProposal
-         * @description A proposed candidate project for vague/'surprise me' input (§7.1, capped
-         *     at 3 by the reply).
-         *
-         *     NOTE (judgment call — confirm before forking): the docs describe the
-         *     behavior ('propose 2–3 candidate projects') but not the field shape. This
-         *     minimal shape is inferred.
+         * Candidate
+         * @description A proposed candidate project for vague/'surprise me' input (§7.1). The
+         *     ``id`` is stable within the session and is echoed back via
+         *     ``GenerateMessageCreate.select_candidate_id`` to pick it.
          */
-        CandidateProposal: {
+        Candidate: {
+            /**
+             * Id
+             * @description Stable within the session; used to select this candidate.
+             */
+            id: string;
             /** Title */
             title: string;
             /** Summary */
             summary: string;
+            difficulty?: components["schemas"]["Difficulty"] | null;
+            /** Est Cost Usd */
+            est_cost_usd?: number | null;
+        };
+        /**
+         * ClarifyTurn
+         * @description Agent asked a clarifying question — awaiting a free-text answer.
+         */
+        ClarifyTurn: {
+            /** Session Id */
+            session_id: string;
+            /**
+             * Message Id
+             * @description Stable id for this agent turn; dedupe on retry.
+             */
+            message_id: string;
+            /**
+             * Agent Message
+             * @description Always-present natural-language text.
+             */
+            agent_message: string;
+            progress?: components["schemas"]["GenerateProgress"] | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "clarifying";
         };
         /**
          * Difficulty
@@ -343,48 +372,40 @@ export interface components {
         /**
          * GenerateMessageCreate
          * @description §11 POST /generate/sessions/{id}/messages — one user turn.
+         *
+         *     Conversation state lives server-side keyed by session_id (§7.1), so a turn is
+         *     tiny: EITHER a free-text reply OR selecting a previously proposed candidate
+         *     (by its ``Candidate.id``). Exactly one of the two must be set.
          */
         GenerateMessageCreate: {
-            /** Message */
-            message: string;
-        };
-        /**
-         * GenerateMessageReply
-         * @description Response for POST /generate/sessions/{id}/messages — the agent's reply.
-         *
-         *     A natural-language turn that may also carry 2–3 candidate proposals (for
-         *     vague input), a rough progress marker, and the '✓ Ready to generate' signal.
-         */
-        GenerateMessageReply: {
-            /** Agent Message */
-            agent_message: string;
             /**
-             * Candidates
-             * @description Present for vague input; capped at 3 (§7.1).
+             * Message
+             * @description A free-text user turn.
              */
-            candidates?: components["schemas"]["CandidateProposal"][] | null;
-            progress?: components["schemas"]["GenerateProgress"] | null;
+            message?: string | null;
             /**
-             * Ready To Generate
-             * @description True once the agent signals '✓ Ready to generate documents'.
-             * @default false
+             * Select Candidate Id
+             * @description Accept a proposed candidate by its id (from a ProposeTurn).
              */
-            ready_to_generate: boolean;
+            select_candidate_id?: string | null;
         };
         /**
          * GenerateProgress
          * @description Rough progress sense for the bounded chat (§7.1: 'Design step · 3 of 5').
-         *
-         *     NOTE (judgment call — confirm before forking): shape inferred from the mock
-         *     caption; not explicitly specified.
          */
         GenerateProgress: {
-            /** Label */
+            /**
+             * Label
+             * @description e.g. "Design step".
+             */
             label: string;
             /** Current */
             current: number;
-            /** Total */
-            total: number;
+            /**
+             * Total
+             * @description Agent may not always know the total up front.
+             */
+            total?: number | null;
         };
         /**
          * GenerateSessionCreate
@@ -649,6 +670,56 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /**
+         * ProposeTurn
+         * @description Agent proposed 2–3 candidate projects — awaiting a pick (§7.1, capped at 3).
+         */
+        ProposeTurn: {
+            /** Session Id */
+            session_id: string;
+            /**
+             * Message Id
+             * @description Stable id for this agent turn; dedupe on retry.
+             */
+            message_id: string;
+            /**
+             * Agent Message
+             * @description Always-present natural-language text.
+             */
+            agent_message: string;
+            progress?: components["schemas"]["GenerateProgress"] | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "proposing";
+            /** Candidates */
+            candidates: components["schemas"]["Candidate"][];
+        };
+        /**
+         * ReadyTurn
+         * @description Agent has enough ('✓ Ready to generate documents') — client may call finalize.
+         */
+        ReadyTurn: {
+            /** Session Id */
+            session_id: string;
+            /**
+             * Message Id
+             * @description Stable id for this agent turn; dedupe on retry.
+             */
+            message_id: string;
+            /**
+             * Agent Message
+             * @description Always-present natural-language text.
+             */
+            agent_message: string;
+            progress?: components["schemas"]["GenerateProgress"] | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "ready";
         };
         /** ResearchResource */
         ResearchResource: {
@@ -1496,7 +1567,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GenerateMessageReply"];
+                    "application/json": components["schemas"]["ClarifyTurn"] | components["schemas"]["ProposeTurn"] | components["schemas"]["ReadyTurn"];
                 };
             };
             /** @description Validation Error */

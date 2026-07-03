@@ -867,7 +867,26 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GenerateMessageReply"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ClarifyTurn"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ProposeTurn"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ReadyTurn"
+                    }
+                  ],
+                  "discriminator": {
+                    "propertyName": "kind",
+                    "mapping": {
+                      "clarifying": "#/components/schemas/ClarifyTurn",
+                      "proposing": "#/components/schemas/ProposeTurn",
+                      "ready": "#/components/schemas/ReadyTurn"
+                    }
+                  },
+                  "title": "Response Send Message Generate Sessions  Session Id  Messages Post"
                 }
               }
             }
@@ -1018,8 +1037,13 @@
         "title": "BudgetBand",
         "description": "Generation setup budget band (\u00a77.1 / mock 1d): Under $30 / $30\u201375 / $75+.\n\nNOTE (judgment call \u2014 confirm before forking): the docs give display labels,\nnot wire tokens. These machine values are inferred."
       },
-      "CandidateProposal": {
+      "Candidate": {
         "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Stable within the session; used to select this candidate."
+          },
           "title": {
             "type": "string",
             "title": "Title"
@@ -1027,15 +1051,79 @@
           "summary": {
             "type": "string",
             "title": "Summary"
+          },
+          "difficulty": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Difficulty"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "est_cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Est Cost Usd"
           }
         },
         "type": "object",
         "required": [
+          "id",
           "title",
           "summary"
         ],
-        "title": "CandidateProposal",
-        "description": "A proposed candidate project for vague/'surprise me' input (\u00a77.1, capped\nat 3 by the reply).\n\nNOTE (judgment call \u2014 confirm before forking): the docs describe the\nbehavior ('propose 2\u20133 candidate projects') but not the field shape. This\nminimal shape is inferred."
+        "title": "Candidate",
+        "description": "A proposed candidate project for vague/'surprise me' input (\u00a77.1). The\n``id`` is stable within the session and is echoed back via\n``GenerateMessageCreate.select_candidate_id`` to pick it."
+      },
+      "ClarifyTurn": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "message_id": {
+            "type": "string",
+            "title": "Message Id",
+            "description": "Stable id for this agent turn; dedupe on retry."
+          },
+          "agent_message": {
+            "type": "string",
+            "title": "Agent Message",
+            "description": "Always-present natural-language text."
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenerateProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "const": "clarifying",
+            "title": "Kind",
+            "default": "clarifying"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "message_id",
+          "agent_message"
+        ],
+        "title": "ClarifyTurn",
+        "description": "Agent asked a clarifying question \u2014 awaiting a free-text answer."
       },
       "Difficulty": {
         "type": "string",
@@ -1049,85 +1137,66 @@
       "GenerateMessageCreate": {
         "properties": {
           "message": {
-            "type": "string",
-            "title": "Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "message"
-        ],
-        "title": "GenerateMessageCreate",
-        "description": "\u00a711 POST /generate/sessions/{id}/messages \u2014 one user turn."
-      },
-      "GenerateMessageReply": {
-        "properties": {
-          "agent_message": {
-            "type": "string",
-            "title": "Agent Message"
-          },
-          "candidates": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/CandidateProposal"
-                },
-                "type": "array"
+                "type": "string",
+                "minLength": 1
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Candidates",
-            "description": "Present for vague input; capped at 3 (\u00a77.1)."
+            "title": "Message",
+            "description": "A free-text user turn."
           },
-          "progress": {
+          "select_candidate_id": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/GenerateProgress"
+                "type": "string"
               },
               {
                 "type": "null"
               }
-            ]
-          },
-          "ready_to_generate": {
-            "type": "boolean",
-            "title": "Ready To Generate",
-            "description": "True once the agent signals '\u2713 Ready to generate documents'.",
-            "default": false
+            ],
+            "title": "Select Candidate Id",
+            "description": "Accept a proposed candidate by its id (from a ProposeTurn)."
           }
         },
         "type": "object",
-        "required": [
-          "agent_message"
-        ],
-        "title": "GenerateMessageReply",
-        "description": "Response for POST /generate/sessions/{id}/messages \u2014 the agent's reply.\n\nA natural-language turn that may also carry 2\u20133 candidate proposals (for\nvague input), a rough progress marker, and the '\u2713 Ready to generate' signal."
+        "title": "GenerateMessageCreate",
+        "description": "\u00a711 POST /generate/sessions/{id}/messages \u2014 one user turn.\n\nConversation state lives server-side keyed by session_id (\u00a77.1), so a turn is\ntiny: EITHER a free-text reply OR selecting a previously proposed candidate\n(by its ``Candidate.id``). Exactly one of the two must be set."
       },
       "GenerateProgress": {
         "properties": {
           "label": {
             "type": "string",
-            "title": "Label"
+            "title": "Label",
+            "description": "e.g. \"Design step\"."
           },
           "current": {
             "type": "integer",
             "title": "Current"
           },
           "total": {
-            "type": "integer",
-            "title": "Total"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total",
+            "description": "Agent may not always know the total up front."
           }
         },
         "type": "object",
         "required": [
           "label",
-          "current",
-          "total"
+          "current"
         ],
         "title": "GenerateProgress",
-        "description": "Rough progress sense for the bounded chat (\u00a77.1: 'Design step \u00b7 3 of 5').\n\nNOTE (judgment call \u2014 confirm before forking): shape inferred from the mock\ncaption; not explicitly specified."
+        "description": "Rough progress sense for the bounded chat (\u00a77.1: 'Design step \u00b7 3 of 5')."
       },
       "GenerateSessionCreate": {
         "properties": {
@@ -1724,6 +1793,100 @@
         ],
         "title": "ProjectSummary",
         "description": "List view (\u00a711 GET /projects \u2192 the 1a 'Your projects' grid). Row-level\nfields only; no hydrated children."
+      },
+      "ProposeTurn": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "message_id": {
+            "type": "string",
+            "title": "Message Id",
+            "description": "Stable id for this agent turn; dedupe on retry."
+          },
+          "agent_message": {
+            "type": "string",
+            "title": "Agent Message",
+            "description": "Always-present natural-language text."
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenerateProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "const": "proposing",
+            "title": "Kind",
+            "default": "proposing"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/Candidate"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Candidates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "message_id",
+          "agent_message",
+          "candidates"
+        ],
+        "title": "ProposeTurn",
+        "description": "Agent proposed 2\u20133 candidate projects \u2014 awaiting a pick (\u00a77.1, capped at 3)."
+      },
+      "ReadyTurn": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "message_id": {
+            "type": "string",
+            "title": "Message Id",
+            "description": "Stable id for this agent turn; dedupe on retry."
+          },
+          "agent_message": {
+            "type": "string",
+            "title": "Agent Message",
+            "description": "Always-present natural-language text."
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenerateProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "const": "ready",
+            "title": "Kind",
+            "default": "ready"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "message_id",
+          "agent_message"
+        ],
+        "title": "ReadyTurn",
+        "description": "Agent has enough ('\u2713 Ready to generate documents') \u2014 client may call finalize."
       },
       "ResearchResource": {
         "properties": {

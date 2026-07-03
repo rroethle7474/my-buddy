@@ -15,11 +15,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import Annotated, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
-from .spec import Difficulty, ProjectSpec, ResearchResource, TimeBudget
+from .spec import Difficulty, ResearchResource, TimeBudget
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -256,52 +256,90 @@ class GenerateSessionStart(BaseModel):
 
 
 class GenerateMessageCreate(BaseModel):
-    """§11 POST /generate/sessions/{id}/messages — one user turn."""
+    """§11 POST /generate/sessions/{id}/messages — one user turn.
 
-    message: str
-
-
-class CandidateProposal(BaseModel):
-    """A proposed candidate project for vague/'surprise me' input (§7.1, capped
-    at 3 by the reply).
-
-    NOTE (judgment call — confirm before forking): the docs describe the
-    behavior ('propose 2–3 candidate projects') but not the field shape. This
-    minimal shape is inferred.
+    Conversation state lives server-side keyed by session_id (§7.1), so a turn is
+    tiny: EITHER a free-text reply OR selecting a previously proposed candidate
+    (by its ``Candidate.id``). Exactly one of the two must be set.
     """
 
+    message: Optional[str] = Field(
+        default=None, min_length=1, description="A free-text user turn."
+    )
+    select_candidate_id: Optional[str] = Field(
+        default=None,
+        description="Accept a proposed candidate by its id (from a ProposeTurn).",
+    )
+
+    @model_validator(mode="after")
+    def _exactly_one(self) -> "GenerateMessageCreate":
+        provided = sum(
+            x is not None for x in (self.message, self.select_candidate_id)
+        )
+        if provided != 1:
+            raise ValueError(
+                "Provide exactly one of 'message' or 'select_candidate_id'."
+            )
+        return self
+
+
+class Candidate(BaseModel):
+    """A proposed candidate project for vague/'surprise me' input (§7.1). The
+    ``id`` is stable within the session and is echoed back via
+    ``GenerateMessageCreate.select_candidate_id`` to pick it."""
+
+    id: str = Field(description="Stable within the session; used to select this candidate.")
     title: str
     summary: str
+    # Optional teasers so the picker can show badges without another round-trip.
+    difficulty: Optional[Difficulty] = None
+    est_cost_usd: Optional[float] = None
 
 
 class GenerateProgress(BaseModel):
-    """Rough progress sense for the bounded chat (§7.1: 'Design step · 3 of 5').
+    """Rough progress sense for the bounded chat (§7.1: 'Design step · 3 of 5')."""
 
-    NOTE (judgment call — confirm before forking): shape inferred from the mock
-    caption; not explicitly specified.
-    """
-
-    label: str
+    label: str = Field(description='e.g. "Design step".')
     current: int
-    total: int
-
-
-class GenerateMessageReply(BaseModel):
-    """Response for POST /generate/sessions/{id}/messages — the agent's reply.
-
-    A natural-language turn that may also carry 2–3 candidate proposals (for
-    vague input), a rough progress marker, and the '✓ Ready to generate' signal.
-    """
-
-    agent_message: str
-    candidates: Optional[List[CandidateProposal]] = Field(
-        default=None, description="Present for vague input; capped at 3 (§7.1)."
+    total: Optional[int] = Field(
+        default=None, description="Agent may not always know the total up front."
     )
+
+
+# ── AgentTurn: a discriminated union on `kind` (mock 1e) ──────────────────────
+# The reply names what kind of turn it is, so the client renders deterministically
+# and new turn kinds are additive (consumers switch on `kind` with a default).
+class _AgentTurnBase(BaseModel):
+    session_id: str
+    message_id: str = Field(description="Stable id for this agent turn; dedupe on retry.")
+    agent_message: str = Field(description="Always-present natural-language text.")
     progress: Optional[GenerateProgress] = None
-    ready_to_generate: bool = Field(
-        default=False,
-        description="True once the agent signals '✓ Ready to generate documents'.",
-    )
+
+
+class ClarifyTurn(_AgentTurnBase):
+    """Agent asked a clarifying question — awaiting a free-text answer."""
+
+    kind: Literal["clarifying"] = "clarifying"
+
+
+class ProposeTurn(_AgentTurnBase):
+    """Agent proposed 2–3 candidate projects — awaiting a pick (§7.1, capped at 3)."""
+
+    kind: Literal["proposing"] = "proposing"
+    candidates: List[Candidate] = Field(min_length=1, max_length=3)
+
+
+class ReadyTurn(_AgentTurnBase):
+    """Agent has enough ('✓ Ready to generate documents') — client may call finalize."""
+
+    kind: Literal["ready"] = "ready"
+
+
+AgentTurn = Annotated[
+    Union[ClarifyTurn, ProposeTurn, ReadyTurn],
+    Field(discriminator="kind"),
+]
+"""Response for POST /generate/sessions/{id}/messages — the agent's reply (mock 1e)."""
 
 
 # POST /generate/sessions/{id}/finalize → ProjectSpec (§6), declared on router.
