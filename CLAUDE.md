@@ -43,6 +43,25 @@ worktrees (backend-core, claude-service, frontend-shell, mechanic-ui) branch off
 `main` per COORDINATION.md §2. Endpoint bodies are stubs (501) except `/health`;
 no business logic, DB tables, or migrations exist yet — those are Phase 1+.
 
+## First-time setup (per worktree)
+
+Each worktree is its own working dir; `backend/.venv` and `frontend/node_modules`
+are gitignored and **not** shared, so bootstrap them once per worktree. (The
+committed contract artifacts — `shared/openapi.json`, `frontend/src/api/schema.d.ts`
+— are already present.)
+
+```bash
+# backend — needs `uv` + Python >=3.11 (see backend/README.md)
+cd backend && uv venv --python 3.12 && uv pip install -e ".[dev]"
+uvicorn app.main:app --reload --port 8000        # after activating .venv, or `uv run uvicorn ...`
+
+# frontend — needs Node >=20 (see frontend/README.md)
+cd frontend && npm install && npm run dev
+```
+
+Or bring up the whole stack (app + Postgres) with `docker-compose up` from the
+repo root once Docker is available.
+
 ## Regenerating the API contract
 
 ```bash
