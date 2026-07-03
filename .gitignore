@@ -1,0 +1,49 @@
+# ── Secrets & env ─────────────────────────────────────────────
+# Never commit real secrets (ANTHROPIC_API_KEY, DB creds, session secret).
+.env
+.env.*
+!.env.example          # DO track a template so agents know which vars exist
+*.pem
+*.key
+
+# ── Python / FastAPI (backend/) ───────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Node / React / Vite (frontend/) ───────────────────────────
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# ── Local dev data (photos/uploads written by the storage adapter) ──
+/storage/
+/uploads/
+*.sqlite
+*.sqlite3
+*.db
+
+# ── OS / editor ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# NOTE — do NOT add these; they are source, not artifacts:
+#   • alembic/versions/*        migrations are the schema's source of truth
+#   • frontend/src/api/*        generated OpenAPI types are the visible contract
+#     (a CONTRACT-CHANGE should show up as a diff there — see COORDINATION.md §5)
+# The message bus and worktrees are SIBLING folders outside my-buddy/,
+# so they're already out of this repo — nothing to ignore here.
