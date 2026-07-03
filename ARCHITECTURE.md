@@ -356,7 +356,7 @@ As long as those hold steady, A/B/C/D proceed independently. **The message-bus m
 
 ## 16. Design & UI
 
-Direction comes from the Claude Design mocks (`My_Buddy.html` — keep it in the repo under `/design` as the visual reference). Six screens: **1a Homepage — Spotlight** ✓ *chosen*, 1b Homepage — Split *(alternative, not chosen)*, 1c My Mechanic module, 1d New Project Setup, 1e Chat with Agent, 1f Generated Documents. Every screen is drawn at **desktop and mobile** — the mobile frames are the source of truth for the PWA layout.
+Direction comes from the Claude Design mocks (`design/mocks.html` — the visual reference kept in the repo; the raw Claude Design export is cleaned of tool markup before it lands there). Six screens: **1a Homepage — Spotlight** ✓ *chosen*, 1b Homepage — Split *(alternative, not chosen)*, 1c My Mechanic module, 1d New Project Setup, 1e Chat with Agent, 1f Generated Documents. Every screen is drawn at **desktop and mobile** — the mobile frames are the source of truth for the PWA layout.
 
 ### 16.1 Design language (tokens)
 
@@ -404,6 +404,6 @@ The palette is lifted from the "Buddy" mascot (16.4) — a warm-neutral canvas w
 
 ### 16.5 Handoff for agents C (shell) and D (mechanic-ui)
 
-- **Read `frontend-design/SKILL.md` first**, then build to the tokens in 16.1. The mock markup (`My_Buddy.html`) is the reference for exact spacing and component structure — pull from it rather than approximating.
+- **Design skill — toolchain-specific (Claude Code vs Codex).** Claude Code agents have a built-in **`frontend-design` skill** — invoke it first, then build to the tokens in 16.1. This is a Claude Code skill, **not** a file in the repo, so **Codex agents don't have it**; Codex builds straight from the §16.1 tokens + the mock markup instead. Either way, **`design/mocks.html`** is the shared reference for exact spacing and component structure for both toolchains — pull from it rather than approximating.
 - **Mobile frames are canonical** for the PWA — every mock has one. Hit the quality floor: responsive to mobile, visible keyboard focus, `prefers-reduced-motion` honored (the bob).
 - **Copy voice** (matches the mocks + the skill): warm, plain, active. Buttons name the outcome — "Open My Mechanic →", "Start chatting →", "Generate documents →" — and keep that name through the flow. Empty states invite action; errors say what happened and how to fix it.
