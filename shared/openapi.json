@@ -970,7 +970,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectRead"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResearchTopicRead"
+                  },
+                  "title": "Response Refresh Research Projects  Project Id  Research Refresh Post"
                 }
               }
             }

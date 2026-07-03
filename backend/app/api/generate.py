@@ -7,6 +7,8 @@ flow itself is Phase 2 (claude-service, §12/§13).
 
 from __future__ import annotations
 
+from typing import List
+
 from fastapi import APIRouter, status
 
 from ..schemas.dtos import (
@@ -14,7 +16,7 @@ from ..schemas.dtos import (
     GenerateMessageCreate,
     GenerateSessionCreate,
     GenerateSessionStart,
-    ProjectRead,
+    ResearchTopicRead,
 )
 from ..schemas.spec import ProjectSpec
 from . import not_implemented
@@ -57,8 +59,11 @@ research_router = APIRouter(tags=["generate"])
 
 @research_router.post(
     "/projects/{project_id}/research/refresh",
-    response_model=ProjectRead,
+    response_model=List[ResearchTopicRead],
     summary="Re-populate research resources[] via web search (§7.2)",
 )
-def refresh_research(project_id: int) -> ProjectRead:
+def refresh_research(project_id: int) -> List[ResearchTopicRead]:
+    # Returns only the refreshed research topics (the exact delta — refresh
+    # touches nothing else on the project). The client patches its cache by
+    # ResearchTopicRead.id.
     not_implemented()

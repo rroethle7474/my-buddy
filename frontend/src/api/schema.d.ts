@@ -1629,7 +1629,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectRead"];
+                    "application/json": components["schemas"]["ResearchTopicRead"][];
                 };
             };
             /** @description Validation Error */
