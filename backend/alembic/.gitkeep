@@ -1,0 +1,6 @@
+# Alembic migrations directory (ARCHITECTURE.md §10).
+#
+# INTENTIONALLY EMPTY in Phase 0. Alembic config (alembic.ini, env.py) and the
+# initial migration are Phase 1 (backend-core, §12/§13). Migrations in
+# alembic/versions/ are the schema's source of truth (see .gitignore note) — do
+# not populate them during Phase 0.

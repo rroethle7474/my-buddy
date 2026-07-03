@@ -1,0 +1,43 @@
+# my-buddy — local dev stack (ARCHITECTURE.md §10/§12 Phase 0): FastAPI + Postgres.
+# Phase 0: brings the app up so /health responds and OpenAPI emits. Nothing real
+# works yet (routers are stubs). The frontend is run separately (Vite dev server);
+# see frontend/README.md.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: my_buddy
+      POSTGRES_PASSWORD: my_buddy
+      POSTGRES_DB: my_buddy
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U my_buddy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Names only — see .env.example. Values here are local-dev defaults.
+      DATABASE_URL: postgresql+psycopg://my_buddy:my_buddy@db:5432/my_buddy
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_PATH: /data/storage
+      APP_BASE_URL: http://localhost:8000
+      AUTH_MODE: cloudflare_access
+      # ANTHROPIC_API_KEY / SESSION_SECRET intentionally unset for Phase 0.
+    ports:
+      - "8000:8000"
+    volumes:
+      - storage_data:/data/storage
+
+volumes:
+  db_data:
+  storage_data:

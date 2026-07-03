@@ -1,0 +1,2312 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "my-buddy API",
+    "description": "Personal skill-building project companion. Phase 0 scaffold: the API contract is frozen; endpoint bodies are stubs (501) except /health. Contract of record: shared/project-spec.schema.json + this OpenAPI surface (see COORDINATION.md \u00a76).",
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Liveness check",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modules": {
+      "get": {
+        "tags": [
+          "modules"
+        ],
+        "summary": "List modules",
+        "operationId": "list_modules_modules_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ModuleRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Modules Modules Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/modules/{slug}": {
+      "get": {
+        "tags": [
+          "modules"
+        ],
+        "summary": "Get a module by slug",
+        "operationId": "get_module_modules__slug__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "List projects",
+        "operationId": "list_projects_projects_get",
+        "parameters": [
+          {
+            "name": "module",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Module"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ProjectStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectSummary"
+                  },
+                  "title": "Response List Projects Projects Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Import a spec (validates, persists, runs shop diff \u00a78)",
+        "operationId": "create_project_projects_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectSpec"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Get hydrated project",
+        "operationId": "get_project_projects__project_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Update project status",
+        "operationId": "update_project_projects__project_id__patch",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectStatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Soft-delete a project",
+        "operationId": "delete_project_projects__project_id__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/materials/{material_id}": {
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Toggle a material's checked state",
+        "operationId": "update_material_projects__project_id__materials__material_id__patch",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "material_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Material Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/tools/{tool_id}": {
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Toggle a tool's checked / owned state",
+        "operationId": "update_tool_projects__project_id__tools__tool_id__patch",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "tool_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Tool Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToolUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/steps/{step_id}": {
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Toggle a step's completed state / set its note",
+        "operationId": "update_step_projects__project_id__steps__step_id__patch",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "step_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Step Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StepUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/retrospective": {
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Upsert the project retrospective",
+        "operationId": "upsert_retrospective_projects__project_id__retrospective_patch",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetrospectiveUpsert"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetrospectiveRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shop/inventory": {
+      "get": {
+        "tags": [
+          "shop"
+        ],
+        "summary": "List My Shop",
+        "operationId": "list_inventory_shop_inventory_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ShopInventoryRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Inventory Shop Inventory Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "shop"
+        ],
+        "summary": "Add a tool to My Shop",
+        "operationId": "add_inventory_shop_inventory_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShopInventoryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopInventoryRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shop/inventory/{inventory_id}": {
+      "delete": {
+        "tags": [
+          "shop"
+        ],
+        "summary": "Remove a tool from My Shop",
+        "operationId": "delete_inventory_shop_inventory__inventory_id__delete",
+        "parameters": [
+          {
+            "name": "inventory_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Inventory Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/photos": {
+      "post": {
+        "tags": [
+          "photos"
+        ],
+        "summary": "Upload a progress photo (multipart; optional step_id)",
+        "operationId": "upload_photo_projects__project_id__photos_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_photo_projects__project_id__photos_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "photos"
+        ],
+        "summary": "List a project's photos",
+        "operationId": "list_photos_projects__project_id__photos_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PhotoRead"
+                  },
+                  "title": "Response List Photos Projects  Project Id  Photos Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/photos/{photo_id}": {
+      "delete": {
+        "tags": [
+          "photos"
+        ],
+        "summary": "Delete a photo",
+        "operationId": "delete_photo_photos__photo_id__delete",
+        "parameters": [
+          {
+            "name": "photo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Photo Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/generate/sessions": {
+      "post": {
+        "tags": [
+          "generate"
+        ],
+        "summary": "Start a generation session from the setup payload (mock 1d)",
+        "operationId": "start_session_generate_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateSessionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateSessionStart"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/generate/sessions/{session_id}/messages": {
+      "post": {
+        "tags": [
+          "generate"
+        ],
+        "summary": "Send one user turn, get the agent's reply (mock 1e)",
+        "operationId": "send_message_generate_sessions__session_id__messages_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateMessageCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateMessageReply"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/generate/sessions/{session_id}/finalize": {
+      "post": {
+        "tags": [
+          "generate"
+        ],
+        "summary": "Emit the full \u00a76 spec as strict JSON (mock 1e \u2192 1f)",
+        "operationId": "finalize_session_generate_sessions__session_id__finalize_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectSpec"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}/research/refresh": {
+      "post": {
+        "tags": [
+          "generate"
+        ],
+        "summary": "Re-populate research resources[] via web search (\u00a77.2)",
+        "operationId": "refresh_research_projects__project_id__research_refresh_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_upload_photo_projects__project_id__photos_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "step_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step Id"
+          },
+          "caption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caption"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_photo_projects__project_id__photos_post"
+      },
+      "BudgetBand": {
+        "type": "string",
+        "enum": [
+          "under_30",
+          "30_to_75",
+          "over_75"
+        ],
+        "title": "BudgetBand",
+        "description": "Generation setup budget band (\u00a77.1 / mock 1d): Under $30 / $30\u201375 / $75+.\n\nNOTE (judgment call \u2014 confirm before forking): the docs give display labels,\nnot wire tokens. These machine values are inferred."
+      },
+      "CandidateProposal": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "summary"
+        ],
+        "title": "CandidateProposal",
+        "description": "A proposed candidate project for vague/'surprise me' input (\u00a77.1, capped\nat 3 by the reply).\n\nNOTE (judgment call \u2014 confirm before forking): the docs describe the\nbehavior ('propose 2\u20133 candidate projects') but not the field shape. This\nminimal shape is inferred."
+      },
+      "Difficulty": {
+        "type": "string",
+        "enum": [
+          "beginner",
+          "handy",
+          "pro"
+        ],
+        "title": "Difficulty"
+      },
+      "GenerateMessageCreate": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "GenerateMessageCreate",
+        "description": "\u00a711 POST /generate/sessions/{id}/messages \u2014 one user turn."
+      },
+      "GenerateMessageReply": {
+        "properties": {
+          "agent_message": {
+            "type": "string",
+            "title": "Agent Message"
+          },
+          "candidates": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CandidateProposal"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidates",
+            "description": "Present for vague input; capped at 3 (\u00a77.1)."
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenerateProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ready_to_generate": {
+            "type": "boolean",
+            "title": "Ready To Generate",
+            "description": "True once the agent signals '\u2713 Ready to generate documents'.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent_message"
+        ],
+        "title": "GenerateMessageReply",
+        "description": "Response for POST /generate/sessions/{id}/messages \u2014 the agent's reply.\n\nA natural-language turn that may also carry 2\u20133 candidate proposals (for\nvague input), a rough progress marker, and the '\u2713 Ready to generate' signal."
+      },
+      "GenerateProgress": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "current": {
+            "type": "integer",
+            "title": "Current"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "current",
+          "total"
+        ],
+        "title": "GenerateProgress",
+        "description": "Rough progress sense for the bounded chat (\u00a77.1: 'Design step \u00b7 3 of 5').\n\nNOTE (judgment call \u2014 confirm before forking): shape inferred from the mock\ncaption; not explicitly specified."
+      },
+      "GenerateSessionCreate": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Short free-text description (or the idea chip) of what to build."
+          },
+          "skill_level": {
+            "$ref": "#/components/schemas/SkillLevel"
+          },
+          "budget_band": {
+            "$ref": "#/components/schemas/BudgetBand"
+          }
+        },
+        "type": "object",
+        "required": [
+          "description",
+          "skill_level",
+          "budget_band"
+        ],
+        "title": "GenerateSessionCreate",
+        "description": "\u00a711 POST /generate/sessions \u2014 the setup payload (mock 1d)."
+      },
+      "GenerateSessionStart": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "agent_message": {
+            "type": "string",
+            "title": "Agent Message",
+            "description": "The agent's opening message."
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "agent_message"
+        ],
+        "title": "GenerateSessionStart",
+        "description": "Response for POST /generate/sessions."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          }
+        },
+        "type": "object",
+        "title": "HealthResponse"
+      },
+      "Material": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "est_cost_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Est Cost Usd"
+          },
+          "where_to_find": {
+            "type": "string",
+            "title": "Where To Find"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "quantity",
+          "unit",
+          "est_cost_usd",
+          "where_to_find",
+          "notes"
+        ],
+        "title": "Material"
+      },
+      "MaterialRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "est_cost_usd": {
+            "type": "number",
+            "title": "Est Cost Usd"
+          },
+          "where_to_find": {
+            "type": "string",
+            "title": "Where To Find"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes"
+          },
+          "checked": {
+            "type": "boolean",
+            "title": "Checked",
+            "description": "Runtime: toggled from the shopping cart."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "name",
+          "quantity",
+          "unit",
+          "est_cost_usd",
+          "where_to_find",
+          "notes",
+          "checked"
+        ],
+        "title": "MaterialRead"
+      },
+      "MaterialUpdate": {
+        "properties": {
+          "checked": {
+            "type": "boolean",
+            "title": "Checked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checked"
+        ],
+        "title": "MaterialUpdate",
+        "description": "\u00a711 PATCH /projects/{id}/materials/{mid} \u2014 toggle checked."
+      },
+      "ModuleRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "description"
+        ],
+        "title": "ModuleRead"
+      },
+      "PhotoRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "step_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step Id",
+            "description": "null \u21d2 project-level photo (\u00a75)."
+          },
+          "storage_key": {
+            "type": "string",
+            "title": "Storage Key"
+          },
+          "caption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caption"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "storage_key",
+          "created_at"
+        ],
+        "title": "PhotoRead"
+      },
+      "ProjectMeta": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "module": {
+            "type": "string",
+            "title": "Module",
+            "description": "Module slug, e.g. \"mechanic\"."
+          },
+          "skill_focus": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skill Focus"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "time_budget": {
+            "$ref": "#/components/schemas/TimeBudget"
+          },
+          "estimated_cost_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Estimated Cost Usd"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "One-paragraph description of the finished piece and what you'll learn."
+          },
+          "workspace_required": {
+            "type": "string",
+            "title": "Workspace Required"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "module",
+          "skill_focus",
+          "difficulty",
+          "time_budget",
+          "estimated_cost_usd",
+          "summary",
+          "workspace_required"
+        ],
+        "title": "ProjectMeta"
+      },
+      "ProjectRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "module_id": {
+            "type": "integer",
+            "title": "Module Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "Powers URLs, e.g. /my-mechanic/<slug>/\u2026 (\u00a716)."
+          },
+          "skill_focus": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skill Focus"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "time_budget": {
+            "$ref": "#/components/schemas/TimeBudget"
+          },
+          "estimated_cost_usd": {
+            "type": "number",
+            "title": "Estimated Cost Usd"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "workspace_required": {
+            "type": "string",
+            "title": "Workspace Required"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProjectStatus"
+          },
+          "spec_version": {
+            "type": "string",
+            "title": "Spec Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "materials": {
+            "items": {
+              "$ref": "#/components/schemas/MaterialRead"
+            },
+            "type": "array",
+            "title": "Materials"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/ToolRead"
+            },
+            "type": "array",
+            "title": "Tools"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepRead"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "research_topics": {
+            "items": {
+              "$ref": "#/components/schemas/ResearchTopicRead"
+            },
+            "type": "array",
+            "title": "Research Topics"
+          },
+          "photos": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoRead"
+            },
+            "type": "array",
+            "title": "Photos"
+          },
+          "retrospective": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RetrospectiveRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "module_id",
+          "name",
+          "slug",
+          "skill_focus",
+          "difficulty",
+          "time_budget",
+          "estimated_cost_usd",
+          "summary",
+          "workspace_required",
+          "status",
+          "spec_version",
+          "created_at",
+          "materials",
+          "tools",
+          "steps",
+          "research_topics",
+          "photos"
+        ],
+        "title": "ProjectRead",
+        "description": "Full hydrated project (\u00a711 GET /projects/{id}): spec + state + research +\nphotos + retrospective."
+      },
+      "ProjectSpec": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Schema Version",
+            "description": "Spec schema version. Required and pinned; versioned from day one."
+          },
+          "project": {
+            "$ref": "#/components/schemas/ProjectMeta"
+          },
+          "materials": {
+            "items": {
+              "$ref": "#/components/schemas/Material"
+            },
+            "type": "array",
+            "title": "Materials"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/Tool"
+            },
+            "type": "array",
+            "title": "Tools"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/Step"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "research_topics": {
+            "items": {
+              "$ref": "#/components/schemas/ResearchTopic"
+            },
+            "type": "array",
+            "title": "Research Topics"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "project",
+          "materials",
+          "tools",
+          "steps",
+          "research_topics"
+        ],
+        "title": "ProjectSpec",
+        "description": "The full project spec (\u00a76). This is the request body for the import path\n(``POST /projects``) and the response body for generation finalize\n(``POST /generate/sessions/{id}/finalize``)."
+      },
+      "ProjectStatus": {
+        "type": "string",
+        "enum": [
+          "planning",
+          "active",
+          "complete"
+        ],
+        "title": "ProjectStatus",
+        "description": "\u00a75 projects.status."
+      },
+      "ProjectStatusUpdate": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ProjectStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ProjectStatusUpdate",
+        "description": "\u00a711 PATCH /projects/{id} \u2014 update status."
+      },
+      "ProjectSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "module_id": {
+            "type": "integer",
+            "title": "Module Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "Powers URLs, e.g. /my-mechanic/<slug>/\u2026 (\u00a716)."
+          },
+          "skill_focus": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skill Focus"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "time_budget": {
+            "$ref": "#/components/schemas/TimeBudget"
+          },
+          "estimated_cost_usd": {
+            "type": "number",
+            "title": "Estimated Cost Usd"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "workspace_required": {
+            "type": "string",
+            "title": "Workspace Required"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProjectStatus"
+          },
+          "spec_version": {
+            "type": "string",
+            "title": "Spec Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "module_id",
+          "name",
+          "slug",
+          "skill_focus",
+          "difficulty",
+          "time_budget",
+          "estimated_cost_usd",
+          "summary",
+          "workspace_required",
+          "status",
+          "spec_version",
+          "created_at"
+        ],
+        "title": "ProjectSummary",
+        "description": "List view (\u00a711 GET /projects \u2192 the 1a 'Your projects' grid). Row-level\nfields only; no hydrated children."
+      },
+      "ResearchResource": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "e.g. \"video\", \"article\"."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "url",
+          "type"
+        ],
+        "title": "ResearchResource"
+      },
+      "ResearchTopic": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why"
+          },
+          "resources": {
+            "items": {
+              "$ref": "#/components/schemas/ResearchResource"
+            },
+            "type": "array",
+            "title": "Resources",
+            "description": "May arrive empty from generation; the research web-search pass (\u00a77.2) fills them."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "topic",
+          "why",
+          "resources"
+        ],
+        "title": "ResearchTopic"
+      },
+      "ResearchTopicRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why"
+          },
+          "resources": {
+            "items": {
+              "$ref": "#/components/schemas/ResearchResource"
+            },
+            "type": "array",
+            "title": "Resources"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "topic",
+          "why",
+          "resources"
+        ],
+        "title": "ResearchTopicRead"
+      },
+      "RetrospectiveRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "what_went_well": {
+            "type": "string",
+            "title": "What Went Well"
+          },
+          "what_id_do_differently": {
+            "type": "string",
+            "title": "What Id Do Differently"
+          },
+          "skills_practiced": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills Practiced"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "what_went_well",
+          "what_id_do_differently",
+          "skills_practiced",
+          "created_at"
+        ],
+        "title": "RetrospectiveRead"
+      },
+      "RetrospectiveUpsert": {
+        "properties": {
+          "what_went_well": {
+            "type": "string",
+            "title": "What Went Well"
+          },
+          "what_id_do_differently": {
+            "type": "string",
+            "title": "What Id Do Differently"
+          },
+          "skills_practiced": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills Practiced"
+          }
+        },
+        "type": "object",
+        "required": [
+          "what_went_well",
+          "what_id_do_differently",
+          "skills_practiced"
+        ],
+        "title": "RetrospectiveUpsert",
+        "description": "\u00a711 PATCH /projects/{id}/retrospective \u2014 upsert retrospective."
+      },
+      "ShopInventoryCreate": {
+        "properties": {
+          "tool_name": {
+            "type": "string",
+            "title": "Tool Name"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tool_name"
+        ],
+        "title": "ShopInventoryCreate",
+        "description": "\u00a711 POST /shop/inventory."
+      },
+      "ShopInventoryRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "tool_name": {
+            "type": "string",
+            "title": "Tool Name"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "tool_name"
+        ],
+        "title": "ShopInventoryRead"
+      },
+      "SkillLevel": {
+        "type": "string",
+        "enum": [
+          "beginner",
+          "handy",
+          "pro"
+        ],
+        "title": "SkillLevel",
+        "description": "Generation setup skill level (\u00a77.1 / mock 1d). Mirrors spec difficulty."
+      },
+      "Step": {
+        "properties": {
+          "order": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Order"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "instruction": {
+            "type": "string",
+            "title": "Instruction",
+            "description": "Detailed novice-level instruction. Assume no prior knowledge."
+          },
+          "safety_note": {
+            "type": "string",
+            "title": "Safety Note"
+          },
+          "est_time_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Est Time Minutes"
+          },
+          "tools_used": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tools Used"
+          },
+          "materials_used": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Materials Used"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "order",
+          "title",
+          "instruction",
+          "safety_note",
+          "est_time_minutes",
+          "tools_used",
+          "materials_used"
+        ],
+        "title": "Step"
+      },
+      "StepRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "order": {
+            "type": "integer",
+            "title": "Order"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "instruction": {
+            "type": "string",
+            "title": "Instruction"
+          },
+          "safety_note": {
+            "type": "string",
+            "title": "Safety Note"
+          },
+          "est_time_minutes": {
+            "type": "integer",
+            "title": "Est Time Minutes"
+          },
+          "tools_used": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tools Used"
+          },
+          "materials_used": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Materials Used"
+          },
+          "completed": {
+            "type": "boolean",
+            "title": "Completed",
+            "description": "Runtime."
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note",
+            "description": "Runtime: per-step learning ('where I got stuck')."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "order",
+          "title",
+          "instruction",
+          "safety_note",
+          "est_time_minutes",
+          "tools_used",
+          "materials_used",
+          "completed"
+        ],
+        "title": "StepRead"
+      },
+      "StepUpdate": {
+        "properties": {
+          "completed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "StepUpdate",
+        "description": "\u00a711 PATCH /projects/{id}/steps/{sid} \u2014 toggle completed, set note."
+      },
+      "TimeBudget": {
+        "type": "string",
+        "enum": [
+          "afternoon",
+          "weekend",
+          "multi-weekend"
+        ],
+        "title": "TimeBudget"
+      },
+      "Tool": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "essential": {
+            "type": "boolean",
+            "title": "Essential"
+          },
+          "est_cost_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Est Cost Usd"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes"
+          },
+          "alternatives": {
+            "type": "string",
+            "title": "Alternatives"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "essential",
+          "est_cost_usd",
+          "notes",
+          "alternatives"
+        ],
+        "title": "Tool"
+      },
+      "ToolRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "essential": {
+            "type": "boolean",
+            "title": "Essential"
+          },
+          "est_cost_usd": {
+            "type": "number",
+            "title": "Est Cost Usd"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes"
+          },
+          "alternatives": {
+            "type": "string",
+            "title": "Alternatives"
+          },
+          "owned": {
+            "type": "boolean",
+            "title": "Owned",
+            "description": "Runtime: set by the shop diff (\u00a78)."
+          },
+          "acquire": {
+            "type": "boolean",
+            "title": "Acquire",
+            "description": "Runtime: set by the shop diff (\u00a78)."
+          },
+          "checked": {
+            "type": "boolean",
+            "title": "Checked",
+            "description": "Runtime: for in-cart use."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "name",
+          "essential",
+          "est_cost_usd",
+          "notes",
+          "alternatives",
+          "owned",
+          "acquire",
+          "checked"
+        ],
+        "title": "ToolRead"
+      },
+      "ToolUpdate": {
+        "properties": {
+          "checked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked"
+          },
+          "owned": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owned"
+          }
+        },
+        "type": "object",
+        "title": "ToolUpdate",
+        "description": "\u00a711 PATCH /projects/{id}/tools/{tid} \u2014 toggle checked / mark owned."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

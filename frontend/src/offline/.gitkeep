@@ -1,0 +1,3 @@
+# Offline queue + sync (ARCHITECTURE.md §10, §9): IndexedDB mutation queue,
+# replay-on-reconnect. INTENTIONALLY EMPTY in Phase 0. Built in Phase 1/3
+# (frontend-shell, worktree C).

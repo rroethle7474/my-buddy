@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://my-buddy.local/schemas/project-spec.schema.json",
+  "title": "ProjectSpec",
+  "description": "The my-buddy project spec (ARCHITECTURE.md §6). Both ingestion paths (import + in-app Claude generation) produce this exact shape. Runtime state fields (checked, completed, note, owned, acquire) are NOT part of the spec — they are created in the DB when a spec is ingested.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project", "materials", "tools", "steps", "research_topics"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Spec schema version. Versioned from day one."
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "module",
+        "skill_focus",
+        "difficulty",
+        "time_budget",
+        "estimated_cost_usd",
+        "summary",
+        "workspace_required"
+      ],
+      "properties": {
+        "name": { "type": "string" },
+        "module": { "type": "string", "description": "Module slug, e.g. \"mechanic\"." },
+        "skill_focus": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": ["beginner", "handy", "pro"],
+          "description": "User-facing labels from setup (§16 / mock 1d)."
+        },
+        "time_budget": {
+          "type": "string",
+          "enum": ["afternoon", "weekend", "multi-weekend"]
+        },
+        "estimated_cost_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "summary": {
+          "type": "string",
+          "description": "One-paragraph description of the finished piece and what you'll learn."
+        },
+        "workspace_required": { "type": "string" }
+      }
+    },
+    "materials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "quantity", "unit", "est_cost_usd", "where_to_find", "notes"],
+        "properties": {
+          "name": { "type": "string" },
+          "quantity": { "type": "number" },
+          "unit": { "type": "string" },
+          "est_cost_usd": { "type": "number", "minimum": 0 },
+          "where_to_find": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "essential", "est_cost_usd", "notes", "alternatives"],
+        "properties": {
+          "name": { "type": "string" },
+          "essential": { "type": "boolean" },
+          "est_cost_usd": { "type": "number", "minimum": 0 },
+          "notes": { "type": "string" },
+          "alternatives": { "type": "string" }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "order",
+          "title",
+          "instruction",
+          "safety_note",
+          "est_time_minutes",
+          "tools_used",
+          "materials_used"
+        ],
+        "properties": {
+          "order": { "type": "integer", "minimum": 1 },
+          "title": { "type": "string" },
+          "instruction": {
+            "type": "string",
+            "description": "Detailed novice-level instruction. Assume no prior knowledge."
+          },
+          "safety_note": { "type": "string" },
+          "est_time_minutes": { "type": "integer", "minimum": 0 },
+          "tools_used": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "materials_used": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "research_topics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["topic", "why", "resources"],
+        "properties": {
+          "topic": { "type": "string" },
+          "why": { "type": "string" },
+          "resources": {
+            "type": "array",
+            "description": "May arrive empty from generation; the research web-search pass (§7.2) fills them.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "url", "type"],
+              "properties": {
+                "title": { "type": "string" },
+                "url": { "type": "string" },
+                "type": { "type": "string", "description": "e.g. \"video\", \"article\"." }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

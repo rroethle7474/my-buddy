@@ -26,6 +26,9 @@ coverage/
 *.tsbuildinfo
 npm-debug.log*
 yarn-error.log*
+# tsc -b (composite) emits these from vite.config.ts — build artifacts, not source
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # ── Local dev data (photos/uploads written by the storage adapter) ──
 /storage/
