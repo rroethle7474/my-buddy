@@ -100,7 +100,7 @@ Separation of concerns: the **spec** (§6) is the plan and is treated as write-o
 | `research_topics` | id, project_id, topic, why, **resources (JSONB)** | `resources`: `[{title, url, type}]`, populated via web search |
 | `photos` | id, project_id, step_id (nullable), storage_key, caption, created_at | `step_id` null ⇒ project-level photo |
 | `shop_inventory` | id, user_id, tool_name, category, notes | **"My Shop"** — persistent across projects; the diff source |
-| `retrospectives` | id, project_id (unique), what_went_well, what_id_do_differently, skills_practiced[], created_at | One per project |
+| `retrospectives` | id, project_id (unique), what_went_well, what_i_would_do_differently, skills_practiced[], created_at | One per project |
 
 ---
 

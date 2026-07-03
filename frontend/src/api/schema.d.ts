@@ -766,8 +766,8 @@ export interface components {
             project_id: number;
             /** What Went Well */
             what_went_well: string;
-            /** What Id Do Differently */
-            what_id_do_differently: string;
+            /** What I Would Do Differently */
+            what_i_would_do_differently: string;
             /** Skills Practiced */
             skills_practiced: string[];
             /**
@@ -783,8 +783,8 @@ export interface components {
         RetrospectiveUpsert: {
             /** What Went Well */
             what_went_well: string;
-            /** What Id Do Differently */
-            what_id_do_differently: string;
+            /** What I Would Do Differently */
+            what_i_would_do_differently: string;
             /** Skills Practiced */
             skills_practiced: string[];
         };

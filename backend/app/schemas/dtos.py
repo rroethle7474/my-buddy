@@ -130,9 +130,7 @@ class RetrospectiveRead(BaseModel):
     id: int
     project_id: int
     what_went_well: str
-    # Field name matches §5 verbatim (frozen contract). Reads as "what I'd do
-    # differently"; kept as-is to avoid reshaping the contract.
-    what_id_do_differently: str
+    what_i_would_do_differently: str
     skills_practiced: List[str]
     created_at: datetime
 
@@ -205,7 +203,7 @@ class RetrospectiveUpsert(BaseModel):
     """§11 PATCH /projects/{id}/retrospective — upsert retrospective."""
 
     what_went_well: str
-    what_id_do_differently: str
+    what_i_would_do_differently: str
     skills_practiced: List[str]
 
 

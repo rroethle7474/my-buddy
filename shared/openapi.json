@@ -1995,9 +1995,9 @@
             "type": "string",
             "title": "What Went Well"
           },
-          "what_id_do_differently": {
+          "what_i_would_do_differently": {
             "type": "string",
-            "title": "What Id Do Differently"
+            "title": "What I Would Do Differently"
           },
           "skills_practiced": {
             "items": {
@@ -2017,7 +2017,7 @@
           "id",
           "project_id",
           "what_went_well",
-          "what_id_do_differently",
+          "what_i_would_do_differently",
           "skills_practiced",
           "created_at"
         ],
@@ -2029,9 +2029,9 @@
             "type": "string",
             "title": "What Went Well"
           },
-          "what_id_do_differently": {
+          "what_i_would_do_differently": {
             "type": "string",
-            "title": "What Id Do Differently"
+            "title": "What I Would Do Differently"
           },
           "skills_practiced": {
             "items": {
@@ -2044,7 +2044,7 @@
         "type": "object",
         "required": [
           "what_went_well",
-          "what_id_do_differently",
+          "what_i_would_do_differently",
           "skills_practiced"
         ],
         "title": "RetrospectiveUpsert",
