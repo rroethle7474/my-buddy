@@ -195,6 +195,10 @@ class Photo(SQLModel, table=True):
         sa_column=Column(Integer, ForeignKey("steps.id", ondelete="SET NULL"), nullable=True),
     )
     storage_key: str = Field(sa_column=Column(String(512), nullable=False, unique=True))
+    # Content type captured at upload, so the byte route (GET /photos/{id}/content)
+    # serves the real type instead of sniffing the key suffix. Nullable: legacy rows
+    # predate this column and fall back to suffix inference.
+    content_type: str | None = Field(default=None, sa_column=Column(String(128), nullable=True))
     caption: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     created_at: datetime = Field(
         default_factory=utc_now,

@@ -50,6 +50,7 @@ def upload_project_photo(
         project_id=project_id,
         step_id=step_id,
         storage_key=key,
+        content_type=content_type,
         caption=caption,
     )
     try:
@@ -89,9 +90,10 @@ def read_photo_content(
     """Load a photo's bytes for the out-of-schema ``GET /photos/{id}/content`` route.
 
     Serving stays behind the storage adapter (§3), so a later R2/presigned-URL swap
-    is a config change. The content type is inferred from the storage key's suffix
-    (``make_photo_key`` always gives it a real extension at upload time) — we don't
-    persist a ``content_type`` column, which keeps this out of a schema migration.
+    is a config change. The content type comes from the ``content_type`` column
+    persisted at upload; rows that predate that column (or that stored the generic
+    ``application/octet-stream`` fallback) sniff the storage-key suffix instead
+    (``make_photo_key`` always gives it a real extension at upload time).
     Raises 404 if the row or the underlying object is missing.
     """
     row = session.get(PhotoRow, photo_id)
@@ -105,8 +107,24 @@ def read_photo_content(
             status_code=status.HTTP_404_NOT_FOUND, detail="Photo file not found."
         ) from exc
 
-    media_type = mimetypes.guess_type(row.storage_key)[0] or "application/octet-stream"
-    return data, media_type
+    return data, resolve_media_type(row)
+
+
+_GENERIC_TYPE = "application/octet-stream"
+
+
+def resolve_media_type(photo: PhotoRow) -> str:
+    """Prefer the stored ``content_type``; fall back to suffix sniffing.
+
+    A specific stored type wins. When it's missing (legacy rows) or generic
+    (``application/octet-stream`` — the browser sent no type at upload), the
+    storage-key suffix often does better (e.g. ``.jpg`` → ``image/jpeg``).
+    """
+    stored = (photo.content_type or "").strip()
+    if stored and stored != _GENERIC_TYPE:
+        return stored
+    sniffed = mimetypes.guess_type(photo.storage_key)[0]
+    return sniffed or stored or _GENERIC_TYPE
 
 
 def ensure_project_exists(session: Session, project_id: int) -> None:
