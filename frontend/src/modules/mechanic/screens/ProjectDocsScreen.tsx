@@ -99,11 +99,22 @@ function ProjectDocs({
 
   // Auto-fire only on the just-generated visit; anything else goes through the
   // research section's explicit "Find resources" / "Try again" action.
+  // `justCreated` rides in history state, which SURVIVES page reloads — so it
+  // must be consumed on first use (and skipped when resources already landed),
+  // or every reload of this history entry re-fires a billed search pass.
+  const unfilled =
+    project.research_topics.length > 0 &&
+    project.research_topics.every((t) => t.resources.length === 0);
   useEffect(() => {
     if (!justCreated || fired.current) return;
     fired.current = true;
-    runRefresh();
-  }, [justCreated, runRefresh]);
+    if (unfilled) runRefresh();
+    const h = window.history;
+    h.replaceState(
+      { ...h.state, usr: { ...(h.state?.usr ?? {}), justCreated: false } },
+      "",
+    );
+  }, [justCreated, unfilled, runRefresh]);
 
   return (
     <MechanicProject

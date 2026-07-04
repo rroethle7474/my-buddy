@@ -242,8 +242,8 @@ class ClaudeClient:
         max_tokens: int = 8000,
         max_uses: int = 5,
         max_rounds: int = 6,
-        round_timeout_s: float = 60.0,
-        deadline_s: float = 150.0,
+        round_timeout_s: float = 90.0,
+        deadline_s: float = 180.0,
     ) -> str:
         """Run a web-search-enabled call and return the model's final text.
 
