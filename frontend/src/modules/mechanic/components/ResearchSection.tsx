@@ -25,7 +25,11 @@ function ResourceLink({ resource }: { resource: ResearchResource }) {
       <span className="mech-resource__type" aria-hidden="true">
         {icon}
       </span>
-      <span>{resource.title}</span>
+      <span>
+        {resource.title}
+        {/* shown only in the print/PDF copy so paper links are followable */}
+        <span className="mech-resource__url">{resource.url}</span>
+      </span>
       <span className="mech-resource__arrow" aria-hidden="true">
         ↗
       </span>

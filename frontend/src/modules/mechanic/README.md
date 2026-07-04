@@ -1,5 +1,8 @@
 # `modules/mechanic` — the mechanic UI (agent D)
 
+> **Status:** D1 (four sections on a fixture) and D5 (PDF export) are done.
+> D2/D3/D4 wire live endpoints — see the swap notes below.
+
 Renders a project's plan as the **four interactive sections** (ARCHITECTURE.md
 §1 / §16.3), not the mock's placeholder document grid:
 
@@ -35,6 +38,18 @@ Only `useMechanicProject` changes — components are untouched:
 
 Offline mutation replay is **deferred** (TASKS): offline mutations should fail
 gracefully with a "you're offline" message, not queue.
+
+## PDF export — "Download all" (D5)
+
+Client-side print (v1): "Download all" (header button + the plan-ready banner)
+calls `window.print()` → the user picks **Save as PDF**. The `@media print`
+block in `styles.css` produces the clean copy — strips interactive chrome (nav,
+banner, buttons), turns the journal textareas into static text, reveals each
+research link's URL for paper copies, keeps section colors, avoids awkward page
+breaks, and keeps the **§16.4 safety disclaimer**. `@media print` (not a
+`beforeprint` class) so it also works on iOS Safari with no JS. The shell can
+inject its own `onDownloadAll`; otherwise the default sets the document title to
+the project name so the PDF filename is sensible.
 
 ## Preview it
 
