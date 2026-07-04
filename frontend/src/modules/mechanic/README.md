@@ -33,6 +33,12 @@ banner, header, sticky section nav, safety disclaimer §16.4). All styling is in
   - `saveRetrospective` → `PATCH /projects/{id}/retrospective` (upsert; the
     `RetrospectiveSection` form, D4) — returns a promise so the form shows its own
     pending/saved state; on success the cached `project.retrospective` updates.
+  - `uploadPhoto` / `deletePhoto` → `POST /projects/{id}/photos` (multipart) /
+    `DELETE /photos/{id}` (the `PhotosSection` gallery, D4). Upload appends the
+    returned `PhotoRead`; delete is optimistic with rollback. Photo **bytes** are
+    served by the out-of-schema byte route `GET /photos/{id}/content` (see
+    `api/photos.ts` `photoSrc`) — that route is deliberately not in the generated
+    contract (ARCHITECTURE.md §11), so we build the `<img>` src by id.
 - Called **without** `options` (the fixture preview), the hook stays local-only —
   no PATCH, no cache writes — so the read view is demoable offline against
   **`fixtures/doorwayPullUpBar.ts`**.

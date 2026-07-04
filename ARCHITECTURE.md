@@ -288,6 +288,7 @@ Auth: if D2 = Cloudflare Access, there are **no** auth endpoints — the edge ha
 
 **Photos**
 - `POST /projects/{id}/photos` (multipart; optional `step_id`) · `GET /projects/{id}/photos` · `DELETE /photos/{id}`
+- `GET /photos/{id}/content` — **out-of-schema** byte route (`include_in_schema=False`, decided 2026-07-04). Serves a photo's bytes for the client's `<img>` src, streaming via the storage adapter (§3) so an R2/presigned-URL swap stays a config change; content type is inferred from the storage-key suffix. Deliberately excluded from the OpenAPI surface so the frozen §11 contract / generated types are unchanged. *(Added in the mechanic-ui worktree as a cross-ownership exception since backend-core was closed.)*
 
 **Claude — generate-via-chat (§7.1, mocks 1d–1f)**
 - `POST /generate/sessions` — start a session from the setup payload `{ description, skill_level, budget_band }` → `{ session_id, agent_message }`

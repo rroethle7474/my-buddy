@@ -31,4 +31,5 @@ export type SectionKey =
   | "tools"
   | "tutorial"
   | "research"
+  | "photos"
   | "retrospective";

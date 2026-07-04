@@ -81,6 +81,34 @@ def delete_project_photo(session: Session, storage: StorageAdapter, photo_id: in
     session.commit()
 
 
+def read_photo_content(
+    session: Session,
+    storage: StorageAdapter,
+    photo_id: int,
+) -> tuple[bytes, str]:
+    """Load a photo's bytes for the out-of-schema ``GET /photos/{id}/content`` route.
+
+    Serving stays behind the storage adapter (§3), so a later R2/presigned-URL swap
+    is a config change. The content type is inferred from the storage key's suffix
+    (``make_photo_key`` always gives it a real extension at upload time) — we don't
+    persist a ``content_type`` column, which keeps this out of a schema migration.
+    Raises 404 if the row or the underlying object is missing.
+    """
+    row = session.get(PhotoRow, photo_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found.")
+
+    try:
+        data = storage.get(row.storage_key)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Photo file not found."
+        ) from exc
+
+    media_type = mimetypes.guess_type(row.storage_key)[0] or "application/octet-stream"
+    return data, media_type
+
+
 def ensure_project_exists(session: Session, project_id: int) -> None:
     project_exists = session.exec(
         select(ProjectRow.id).where(ProjectRow.id == project_id, ProjectRow.deleted_at.is_(None))

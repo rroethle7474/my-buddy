@@ -23,6 +23,10 @@ import {
   patchTool,
   upsertRetrospective,
 } from "../api/projects";
+import {
+  deletePhoto as deletePhotoApi,
+  uploadPhoto as uploadPhotoApi,
+} from "../api/photos";
 
 export interface MechanicProjectApi {
   project: ProjectRead;
@@ -39,6 +43,10 @@ export interface MechanicProjectApi {
   /** Upsert the end-of-project retrospective (§5). Resolves on save, rejects on
    *  failure so the form can show its own pending/saved/failed state. */
   saveRetrospective: (draft: RetrospectiveUpsert) => Promise<void>;
+  /** Upload a progress photo (§5). Appends it to the gallery on success. */
+  uploadPhoto: (file: File, caption?: string) => Promise<void>;
+  /** Remove a progress photo (optimistic, rolled back on failure). */
+  deletePhoto: (photoId: number) => Promise<void>;
   /** A recent change failed to save and was rolled back (null when all is well). */
   error: string | null;
   /** Dismiss the current error toast. */
@@ -279,6 +287,35 @@ export function useMechanicProject(
     [applyBoth, live],
   );
 
+  const uploadPhoto = useCallback(
+    async (file: File, caption?: string) => {
+      if (!live) return; // preview has no backend to store to
+      try {
+        const photo = await uploadPhotoApi(projectRef.current.id, file, { caption });
+        applyBoth((p) => ({ ...p, photos: [...p.photos, photo] }));
+      } catch {
+        setError("Couldn't upload that photo — check your connection and try again.");
+        throw new Error(SAVE_FAILED);
+      }
+    },
+    [applyBoth, live],
+  );
+
+  const deletePhoto = useCallback(
+    async (photoId: number) => {
+      const prev = projectRef.current.photos;
+      applyBoth((p) => ({ ...p, photos: p.photos.filter((ph) => ph.id !== photoId) }));
+      if (!live) return;
+      try {
+        await deletePhotoApi(photoId);
+      } catch {
+        applyBoth((p) => ({ ...p, photos: prev }));
+        setError("Couldn't remove that photo — check your connection and try again.");
+      }
+    },
+    [applyBoth, live],
+  );
+
   return useMemo(
     () => ({
       project,
@@ -288,6 +325,8 @@ export function useMechanicProject(
       toggleStep,
       setStepNote,
       saveRetrospective,
+      uploadPhoto,
+      deletePhoto,
       error,
       clearError,
     }),
@@ -299,6 +338,8 @@ export function useMechanicProject(
       toggleStep,
       setStepNote,
       saveRetrospective,
+      uploadPhoto,
+      deletePhoto,
       error,
       clearError,
     ],

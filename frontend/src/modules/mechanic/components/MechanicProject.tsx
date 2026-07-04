@@ -18,6 +18,7 @@ import { ShoppingCartSection } from "./ShoppingCartSection";
 import { ToolListSection } from "./ToolListSection";
 import { TutorialSection } from "./TutorialSection";
 import { ResearchSection } from "./ResearchSection";
+import { PhotosSection } from "./PhotosSection";
 import { RetrospectiveSection } from "./RetrospectiveSection";
 import { SafetyDisclaimer } from "./SafetyDisclaimer";
 import { PlanReadyBanner } from "./PlanReadyBanner";
@@ -64,6 +65,11 @@ export function MechanicProject({
       count: `${stepsDone}/${project.steps.length}`,
     },
     { key: "research", label: "Research" },
+    {
+      key: "photos",
+      label: "Photos",
+      count: project.photos.length ? String(project.photos.length) : undefined,
+    },
     { key: "retrospective", label: "Retrospective" },
   ];
 
@@ -173,6 +179,11 @@ export function MechanicProject({
           onNote={api.setStepNote}
         />
         <ResearchSection topics={project.research_topics} loading={researchLoading} />
+        <PhotosSection
+          photos={project.photos}
+          onUpload={api.uploadPhoto}
+          onDelete={api.deletePhoto}
+        />
         <RetrospectiveSection
           retrospective={project.retrospective ?? null}
           onSave={api.saveRetrospective}

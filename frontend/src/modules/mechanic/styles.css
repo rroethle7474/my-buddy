@@ -856,6 +856,64 @@
   justify-content: flex-end;
 }
 
+/* --- progress photos (§5) ------------------------------------------------- */
+.mech-photos__upload {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.mech-photos__upload .mech-retro__input {
+  flex: 1;
+  min-width: 180px;
+}
+.mech-photos__file {
+  display: none;
+}
+.mech-photos__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.mech-photo {
+  position: relative;
+  margin: 0;
+  border-radius: var(--r-control);
+  overflow: hidden;
+  background: var(--c-surface-3);
+  border: 1px solid var(--c-border);
+}
+.mech-photo__img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+.mech-photo__del {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.6);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+.mech-photo__del:hover {
+  background: rgba(20, 20, 20, 0.85);
+}
+.mech-photo__cap {
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: var(--c-muted-2);
+  line-height: 1.4;
+}
+
 /* ==========================================================================
    PRINT — "Download all" (D5). Client-side print stylesheet (v1): window.print()
    → Save as PDF. Uses @media print (robust, incl. iOS Safari) rather than a
@@ -883,6 +941,8 @@
   .mech-note__field,
   .mech-note__label,
   .mech-toast,
+  .mech-photos__upload,
+  .mech-photo__del,
   #retrospective {
     display: none !important;
   }
