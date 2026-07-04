@@ -248,17 +248,29 @@ RESEARCH_SYSTEM_PROMPT = (
     "for a novice DIY project, use web search to find one or two solid, "
     "beginner-friendly learning resources per topic — prefer short how-to "
     "videos and reputable written guides. Avoid retailer product pages and "
-    "anything paywalled. Return, for each topic, a title, a working URL, and a "
-    "type of either \"video\" or \"article\"."
+    "anything paywalled. Use only real URLs you actually found via search; never "
+    "invent a link."
 )
 
 
 def build_research_user_prompt(topics: Iterable[str]) -> str:
-    """Build the user turn for the research pass (§7.2) from a topic list."""
-    lines = "\n".join(f"- {t}" for t in topics)
+    """Build the user turn for the research pass (§7.2) from a topic list.
+
+    Asks for a strict JSON array so the result is defensively parseable; the
+    topics are echoed back verbatim and in order so results map 1:1 to inputs.
+    """
+    topics = list(topics)
+    lines = "\n".join(f"{i + 1}. {t}" for i, t in enumerate(topics))
     return (
-        "Find learning resources for these topics:\n"
+        "Find 1-2 learning resources for each of these topics, then return the "
+        "results.\n\n"
         f"{lines}\n\n"
-        "For each topic return 1–2 resources. Prefer short videos and clear "
-        "written guides aimed at beginners."
+        "After searching, return ONLY a JSON array with one object per topic, in "
+        "the SAME order, echoing the topic text exactly:\n"
+        '[{"topic": "<the topic text>", "resources": [{"title": "...", '
+        '"url": "https://...", "type": "video"}]}]\n'
+        'Each resource "type" is either "video" or "article". Prefer short '
+        "how-to videos and clear written guides aimed at beginners. If you truly "
+        "can't find a good resource for a topic, return an empty resources list "
+        "for it. No prose outside the JSON."
     )

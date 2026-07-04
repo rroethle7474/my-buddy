@@ -52,29 +52,42 @@ def _strip_code_fences(text: str) -> str:
     return s.strip()
 
 
+def _carve_json(s: str) -> Union[str, None]:
+    """Carve the outermost JSON value (object or array) from surrounding prose.
+
+    Picks the earliest opening bracket (``{`` or ``[``) and matches it to the
+    last closing bracket of the same kind — so a JSON array emitted after a
+    prose preamble (common with web-search answers that concatenate several
+    text blocks) is recovered, not just objects.
+    """
+    starts = [i for i in (s.find("{"), s.find("[")) if i != -1]
+    if not starts:
+        return None
+    start = min(starts)
+    closer = "}" if s[start] == "{" else "]"
+    end = s.rfind(closer)
+    return s[start : end + 1] if end > start else None
+
+
 def extract_json(text: str) -> Any:
     """Best-effort parse of a JSON value out of a model's text response.
 
-    Tries, in order: a direct parse, a fence-stripped parse, then a parse of the
-    substring between the first ``{`` and the last ``}``. Raises
-    ``SpecValidationError`` with the raw head of the text if none succeed.
+    Tries, in order: a direct parse, a fence-stripped parse, then a carve of the
+    outermost object/array from surrounding prose. Raises ``SpecValidationError``
+    with the raw head of the text if none succeed.
     """
     if not text or not text.strip():
         raise SpecValidationError("Model returned an empty response; expected JSON.")
 
-    candidates = []
     stripped = text.strip()
-    candidates.append(stripped)
-
     fenced = _strip_code_fences(text)
+
+    candidates = [stripped]
     if fenced != stripped:
         candidates.append(fenced)
-
-    # Last resort: carve out the outermost braces from surrounding prose.
-    start = fenced.find("{")
-    end = fenced.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        candidates.append(fenced[start : end + 1])
+    for carved in (_carve_json(fenced), _carve_json(stripped)):
+        if carved and carved not in candidates:
+            candidates.append(carved)
 
     last_err: Union[json.JSONDecodeError, None] = None
     for candidate in candidates:

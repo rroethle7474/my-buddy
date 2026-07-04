@@ -19,6 +19,7 @@ from .prompts import (
     build_generation_system_prompt,
     build_research_user_prompt,
 )
+from .research import apply_research_to_spec, research_for_spec, run_research
 from .session_store import (
     Session,
     SessionNotFound,
@@ -35,6 +36,9 @@ __all__ = [
     "build_generation_system_prompt",
     "build_finalize_instruction",
     "build_research_user_prompt",
+    "run_research",
+    "apply_research_to_spec",
+    "research_for_spec",
     "Session",
     "SessionNotFound",
     "SessionStore",

@@ -97,6 +97,14 @@ class SpecGateTests(unittest.TestCase):
         fenced = "```\n{\"a\": 1}\n```"
         self.assertEqual(extract_json(fenced), {"a": 1})
 
+    def test_extract_json_array_after_prose(self):
+        # Mirrors a web-search answer: prose text blocks then the JSON array.
+        text = 'I\'ll search now.Let me look.[{"topic": "a", "resources": []}]'
+        self.assertEqual(extract_json(text), [{"topic": "a", "resources": []}])
+
+    def test_extract_json_object_after_prose(self):
+        self.assertEqual(extract_json('Here you go: {"a": 1} thanks'), {"a": 1})
+
     def test_empty_string_raises(self):
         with self.assertRaises(SpecValidationError):
             parse_spec("   ")
@@ -371,10 +379,11 @@ from app.schemas.dtos import (  # noqa: E402
 class FakeClaude:
     """Stand-in for ClaudeClient — programmable, no network."""
 
-    def __init__(self, *, chat_text="Hi! What are we building?", turn=None, spec=None):
+    def __init__(self, *, chat_text="Hi! What are we building?", turn=None, spec=None, search_text="[]"):
         self.chat_text = chat_text
         self.turn = turn
         self.spec = spec
+        self.search_text = search_text
         self.chat_error = None
 
     def chat(self, *, system, messages, thinking=True, max_tokens=4096):
@@ -387,6 +396,9 @@ class FakeClaude:
 
     def generate_spec(self, *, system, messages, max_tokens=16000, max_retries=1):
         return self.spec
+
+    def web_search(self, *, system, messages, max_tokens=8000, max_uses=5, max_rounds=6):
+        return self.search_text
 
 
 def _new_session(store, claude):
@@ -603,6 +615,89 @@ class RouteTests(unittest.TestCase):
         body = r.json()
         self.assertEqual(body["kind"], "proposing")
         self.assertEqual(body["candidates"][0]["id"], "c1")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Research web-search pass (offline; fake web_search)
+# ─────────────────────────────────────────────────────────────────────────────
+from app.claude.research import (  # noqa: E402
+    apply_research_to_spec,
+    research_for_spec,
+    run_research,
+)
+from app.schemas.spec import ResearchResource  # noqa: E402
+
+_SEARCH_JSON = json.dumps(
+    [
+        {
+            "topic": "How to find a wall stud",
+            "resources": [
+                {"title": "Stud finder basics", "url": "https://ex.com/stud", "type": "video"},
+                {"title": "Drywall anchors", "url": "https://ex.com/anchor", "type": "article"},
+                {"title": "Overflow", "url": "https://ex.com/x", "type": "article"},
+            ],
+        },
+        {
+            "topic": "Pilot holes",
+            "resources": [
+                {"title": "No url", "url": "", "type": "video"},  # filtered (no url)
+                {"title": "Pilot hole guide", "url": "https://ex.com/pilot", "type": "guide"},
+            ],
+        },
+    ]
+)
+
+
+class ResearchTests(unittest.TestCase):
+    def test_empty_topics_returns_empty(self):
+        self.assertEqual(run_research(FakeClaude(), []), {})
+
+    def test_maps_caps_and_filters(self):
+        claude = FakeClaude(search_text=_SEARCH_JSON)
+        out = run_research(claude, ["How to find a wall stud", "Pilot holes"], max_per_topic=2)
+        stud = out["How to find a wall stud"]
+        self.assertEqual(len(stud), 2)  # capped
+        self.assertIsInstance(stud[0], ResearchResource)
+        self.assertEqual(stud[0].type, "video")
+        pilot = out["Pilot holes"]
+        self.assertEqual(len(pilot), 1)  # bad url filtered out
+        self.assertEqual(pilot[0].type, "article")  # "guide" normalized
+
+    def test_garbage_response_degrades_gracefully(self):
+        claude = FakeClaude(search_text="the search failed, sorry")
+        out = run_research(claude, ["a", "b"])
+        self.assertEqual(out, {"a": [], "b": []})
+
+    def test_positional_fallback_when_topic_text_differs(self):
+        payload = json.dumps(
+            [
+                {"topic": "reworded one", "resources": [{"title": "T", "url": "https://ex.com/1", "type": "article"}]},
+                {"topic": "reworded two", "resources": [{"title": "U", "url": "https://ex.com/2", "type": "video"}]},
+            ]
+        )
+        out = run_research(FakeClaude(search_text=payload), ["orig one", "orig two"])
+        self.assertEqual(out["orig one"][0].url, "https://ex.com/1")
+        self.assertEqual(out["orig two"][0].url, "https://ex.com/2")
+
+    def test_apply_research_to_spec(self):
+        spec = ProjectSpec.model_validate(VALID_SPEC)
+        self.assertEqual(spec.research_topics[0].resources, [])
+        mapping = {
+            "How to find a wall stud": [
+                ResearchResource(title="Stud video", url="https://ex.com/s", type="video")
+            ]
+        }
+        filled = apply_research_to_spec(spec, mapping)
+        self.assertEqual(len(filled.research_topics[0].resources), 1)
+        # original spec is untouched (model_copy)
+        self.assertEqual(spec.research_topics[0].resources, [])
+
+    def test_research_for_spec_end_to_end(self):
+        spec = ProjectSpec.model_validate(VALID_SPEC)  # topic: "How to find a wall stud"
+        claude = FakeClaude(search_text=_SEARCH_JSON)
+        filled = research_for_spec(claude, spec)
+        self.assertTrue(filled.research_topics[0].resources)
+        self.assertEqual(filled.research_topics[0].resources[0].url, "https://ex.com/stud")
 
 
 if __name__ == "__main__":

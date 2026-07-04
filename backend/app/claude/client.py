@@ -198,6 +198,53 @@ class ClaudeClient:
         )
 
 
+    # ── research web-search pass (§7.2) ───────────────────────────────────────
+    def web_search(
+        self,
+        *,
+        system: str,
+        messages: List[dict],
+        max_tokens: int = 8000,
+        max_uses: int = 5,
+        max_rounds: int = 6,
+    ) -> str:
+        """Run a web-search-enabled call and return the model's final text.
+
+        Declares the server-side ``web_search`` tool (dynamic-filtering variant,
+        Opus 4.8) and drives the server-tool loop, re-sending on ``pause_turn``
+        (the server hit its per-turn tool-iteration cap). This is the ONLY place
+        the app reaches the web (§7.2).
+        """
+        tools = [
+            {"type": "web_search_20260209", "name": "web_search", "max_uses": max_uses}
+        ]
+        convo = list(messages)
+        resp = None
+        for _ in range(max_rounds):
+            try:
+                resp = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=max_tokens,
+                    system=system,
+                    messages=convo,
+                    tools=tools,
+                )
+            except anthropic.APIError as exc:
+                raise ClaudeError(f"Claude web-search call failed: {exc}") from exc
+
+            if resp.stop_reason == "refusal":
+                raise ClaudeError("Claude declined the research request.")
+            if resp.stop_reason == "pause_turn":
+                # Server paused mid-tool-loop; echo its partial turn back to
+                # resume (per the server-tool continuation pattern).
+                convo = convo + [{"role": "assistant", "content": resp.content}]
+                continue
+            return _text_of(resp)
+
+        # Ran out of rounds — return whatever text the last turn produced.
+        return _text_of(resp) if resp is not None else ""
+
+
 def _text_of(resp: object) -> str:
     """Join the text of all ``text`` content blocks in a Messages response."""
     content = getattr(resp, "content", None) or []
