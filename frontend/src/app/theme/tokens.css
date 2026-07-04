@@ -1,0 +1,72 @@
+/* Design tokens — the my-buddy design language (ARCHITECTURE.md §16.1).
+ *
+ * The palette is grounded in the Buddy mascot: a warm-neutral canvas with the
+ * doll's colors as accents. Every color/type/shape choice in the app derives
+ * from these variables — don't invent new ones (§16.1).
+ */
+:root {
+  /* ── Canvas / surfaces ── */
+  --canvas: #f7f7f3;
+  --surface: #ffffff;
+  --surface-2: #f5f5f1;
+  --surface-3: #f0f0eb;
+  --surface-4: #eaeae4;
+
+  /* ── Borders / dividers ── */
+  --border: #e6e6e0;
+  --border-2: #e4e4de;
+  --border-3: #e0e0d9;
+  --border-hair: #f0f0eb; /* faint inner dividers (nav/footer rules) */
+
+  /* ── Ink ── */
+  --ink: #1b1b19;
+  --ink-max: #141414;
+  --ink-muted: #54544e;
+  --ink-muted-2: #7a7a72;
+  --ink-muted-3: #83837b;
+  --ink-faint: #b4b4ac;
+  --ink-faint-2: #c4c4bc;
+
+  /* ── Red — primary action ── */
+  --red: #de3b2c;
+  --red-tint: #fbecea;
+  --red-tint-2: #fdf3f1; /* gradient partner for the tint */
+  --red-hover: #e5675c;
+  --red-border: #f1d9d5; /* soft border on red-tinted panels */
+  --red-ring: 0 0 0 4px #fbecea;
+  --red-glow: 0 10px 22px -10px rgba(222, 59, 44, 0.7);
+
+  /* ── Blue — module accent, links, secondary ── */
+  --blue: #2e7cc2;
+  --blue-tint: #eaf2fb;
+  --blue-tint-2: #dceaf8; /* gradient partner */
+
+  /* ── Green — success / "✓ ready" ── */
+  --green: #2e8b57;
+  --green-tint: #e7f3ec;
+  --green-tint-2: #cde7d8;
+
+  /* ── Gold — highlights / badges ── */
+  --gold: #edc24c;
+  --gold-tint: #fbf3dc;
+  --gold-ink: #b9891a; /* readable gold text on the tint (mock "In progress") */
+
+  /* ── Shape ── */
+  --r-card: 18px;
+  --r-card-lg: 20px;
+  --r-control: 12px;
+  --r-control-lg: 13px;
+  --r-pill: 10px;
+  --r-chip: 20px; /* full-round status/module chips */
+  --r-round: 46px;
+  --shadow-card: 0 24px 60px -26px rgba(20, 20, 20, 0.32);
+
+  /* ── Type ── */
+  --font: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+
+  /* ── Layout ── */
+  --page-max: 1160px;
+
+  color-scheme: light;
+}

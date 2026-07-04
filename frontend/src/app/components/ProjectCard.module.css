@@ -1,0 +1,80 @@
+.card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--surface-4);
+  border-radius: var(--r-card);
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+/* Lift on hover — links get the affordance; plain (non-linked) cards stay flat. */
+a.card:hover {
+  border-color: var(--border-3);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+/* ── home variant (1a): flat chip + summary ── */
+.cardHome {
+  padding: 20px 22px;
+}
+
+.bodyFlat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.moduleChip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--r-chip);
+  white-space: nowrap;
+}
+
+.summary {
+  font-size: 14px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+/* ── module variant (1c): glyph header + meta ── */
+.cardModule {
+  overflow: hidden;
+}
+
+.glyph {
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+}
+
+.body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--ink-muted-3);
+}
+
+/* ── shared title ── */
+.title {
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}

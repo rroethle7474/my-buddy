@@ -1,0 +1,79 @@
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px clamp(20px, 5vw, 34px);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-hair);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.wordmark {
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.moduleLink {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--blue);
+  background: var(--blue-tint);
+  padding: 9px 15px;
+  border-radius: var(--r-pill);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.moduleLink:hover {
+  background: var(--blue);
+  color: #fff;
+}
+
+/* The active module reads in the primary red so the current section is obvious
+ * (mirrors the mock's red-tinted "My Mechanic" nav pill). */
+.moduleLinkActive,
+.moduleLinkActive:hover {
+  color: var(--red);
+  background: var(--red-tint);
+}
+
+.moduleSoon {
+  font-size: 14.5px;
+  color: var(--ink-faint);
+  padding: 9px 13px;
+}
+
+.moreSoon {
+  font-size: 12px;
+  color: var(--ink-faint);
+  border: 1px dashed var(--border-3);
+  border-radius: var(--r-chip);
+  padding: 5px 11px;
+}
+
+/* On phones the module labels crowd the bar — drop the coming-soon hints and
+ * keep the live module link. */
+@media (max-width: 560px) {
+  .nav {
+    padding: 12px 18px;
+  }
+  .moduleSoon,
+  .moreSoon {
+    display: none;
+  }
+}

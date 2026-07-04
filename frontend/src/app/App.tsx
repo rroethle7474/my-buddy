@@ -1,25 +1,24 @@
-// my-buddy shell (ARCHITECTURE.md §10: frontend/src/app).
-//
-// Phase 0: an empty shell that boots and does nothing real. Routing, the module
-// registry, and the mechanic module are Phase 1+ (frontend-shell / mechanic-ui,
-// §12/§13). This exists so the app builds and runs; screens are not built here.
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RouterProvider } from "react-router-dom";
+import { router } from "./router";
+
+// Server state via TanStack Query (ARCHITECTURE.md §3). One retry so a stub/501
+// during the build doesn't spin; reads stay fresh for 30s. Offline mutation
+// replay is deferred (TASKS.md); reads degrade to graceful states.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export function App() {
   return (
-    <main
-      style={{
-        fontFamily: "system-ui, sans-serif",
-        maxWidth: 640,
-        margin: "0 auto",
-        padding: "3rem 1.25rem",
-        color: "#1b1b19",
-      }}
-    >
-      <h1 style={{ fontWeight: 700 }}>my-buddy</h1>
-      <p style={{ color: "#54544e" }}>
-        Phase 0 scaffold — the shell boots. Screens and the mechanic module are
-        built in later phases against the frozen API contract.
-      </p>
-    </main>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} future={{ v7_startTransition: true }} />
+    </QueryClientProvider>
   );
 }

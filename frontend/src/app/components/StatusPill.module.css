@@ -1,0 +1,23 @@
+.pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--r-chip);
+  white-space: nowrap;
+}
+
+.draft {
+  color: var(--ink-muted-3);
+  background: var(--surface-3);
+}
+
+.active {
+  color: var(--gold-ink);
+  background: var(--gold-tint);
+}
+
+.done {
+  color: var(--green);
+  background: var(--green-tint);
+}

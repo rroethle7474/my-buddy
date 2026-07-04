@@ -1,0 +1,120 @@
+/* Base element styles + the Buddy mascot motion (ARCHITECTURE.md §16.1/§16.5).
+ * Loaded after tokens.css and fonts.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.6;
+  font-synthesis-weight: none; /* trust the real 400–700 variable weights */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Visible keyboard focus everywhere (quality floor, §16.5). Pointer clicks
+ * don't show it; keyboard navigation does. */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ── Buddy mascot idle bob (§16.1 signature & motion) ──
+ * Ambient by design — gated behind prefers-reduced-motion. */
+@keyframes buddyBob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(1.5deg);
+  }
+}
+
+@keyframes buddyShadow {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0.16;
+  }
+  50% {
+    transform: scaleX(0.86);
+    opacity: 0.1;
+  }
+}
+
+.buddy {
+  transform-box: fill-box;
+  transform-origin: 50% 92%;
+  animation: buddyBob 3.4s ease-in-out infinite;
+}
+
+.buddy__shadow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: buddyShadow 3.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buddy,
+  .buddy__shadow {
+    animation: none;
+  }
+}
