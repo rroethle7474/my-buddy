@@ -15,11 +15,13 @@ from __future__ import annotations
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel import Session
 
 from ..claude import generation
 from ..claude.client import ClaudeClient, ClaudeError, get_claude_client
 from ..claude.generation import CandidateNotFound
 from ..claude.session_store import SessionNotFound, SessionStore, get_session_store
+from ..db import get_session
 from ..schemas.dtos import (
     AgentTurn,
     GenerateMessageCreate,
@@ -28,7 +30,7 @@ from ..schemas.dtos import (
     ResearchTopicRead,
 )
 from ..schemas.spec import ProjectSpec
-from . import not_implemented
+from ..services import research as research_service
 
 router = APIRouter(prefix="/generate", tags=["generate"])
 
@@ -111,8 +113,12 @@ research_router = APIRouter(tags=["generate"])
     response_model=List[ResearchTopicRead],
     summary="Re-populate research resources[] via web search (§7.2)",
 )
-def refresh_research(project_id: int) -> List[ResearchTopicRead]:
+def refresh_research(
+    project_id: int,
+    session: Session = Depends(get_session),
+    claude: ClaudeClient = Depends(get_claude_client),
+) -> List[ResearchTopicRead]:
     # Returns only the refreshed research topics (the exact delta — refresh
     # touches nothing else on the project). The client patches its cache by
-    # ResearchTopicRead.id.
-    not_implemented()
+    # ResearchTopicRead.id. 404 if the project is gone, 502 on upstream failure.
+    return research_service.refresh_project_research(session, claude, project_id)

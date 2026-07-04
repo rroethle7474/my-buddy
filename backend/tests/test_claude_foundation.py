@@ -385,6 +385,7 @@ class FakeClaude:
         self.spec = spec
         self.search_text = search_text
         self.chat_error = None
+        self.search_error = None
 
     def chat(self, *, system, messages, thinking=True, max_tokens=4096):
         if self.chat_error:
@@ -398,6 +399,8 @@ class FakeClaude:
         return self.spec
 
     def web_search(self, *, system, messages, max_tokens=8000, max_uses=5, max_rounds=6):
+        if self.search_error:
+            raise self.search_error
         return self.search_text
 
 
@@ -698,6 +701,121 @@ class ResearchTests(unittest.TestCase):
         filled = research_for_spec(claude, spec)
         self.assertTrue(filled.research_topics[0].resources)
         self.assertEqual(filled.research_topics[0].resources[0].url, "https://ex.com/stud")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Research refresh endpoint + service (B3 part 2) — fake DB session
+# ─────────────────────────────────────────────────────────────────────────────
+# A's models use Postgres JSONB columns, which SQLite can't create, and Docker
+# is unavailable in this shell — so the DB is faked at the Session boundary. The
+# web-search half is verified live separately (research smoke); here we cover
+# the wiring: project 404, empty topics, upstream 502, and resource writeback.
+from fastapi import HTTPException  # noqa: E402
+
+from app.db import get_session  # noqa: E402
+from app.models import ResearchTopic as ResearchTopicRow  # noqa: E402
+from app.services.research import refresh_project_research  # noqa: E402
+
+
+class _FakeResult:
+    def __init__(self, first_val=None, all_val=None):
+        self._first = first_val
+        self._all = all_val or []
+
+    def first(self):
+        return self._first
+
+    def all(self):
+        return self._all
+
+
+class _FakeSession:
+    """Minimal Session stand-in: exec()→result, plus add/commit/refresh no-ops.
+
+    The service issues two exec() calls — a project-existence check (.first())
+    then the topics query (.all()) — so one result shape carrying both serves
+    both call sites.
+    """
+
+    def __init__(self, project_exists=True, topics=None):
+        self._first = 1 if project_exists else None
+        self._topics = list(topics or [])
+        self.committed = False
+
+    def exec(self, statement):  # noqa: ARG002 - statement ignored by the fake
+        return _FakeResult(first_val=self._first, all_val=self._topics)
+
+    def add(self, obj):
+        pass
+
+    def commit(self):
+        self.committed = True
+
+    def refresh(self, obj):
+        pass
+
+
+def _research_rows():
+    return [
+        ResearchTopicRow(id=1, project_id=7, topic="How to find a wall stud", why="w1", resources=[]),
+        ResearchTopicRow(id=2, project_id=7, topic="Pilot holes", why="w2", resources=[]),
+    ]
+
+
+class ResearchServiceTests(unittest.TestCase):
+    def test_happy_fills_and_commits(self):
+        session = _FakeSession(topics=_research_rows())
+        out = refresh_project_research(session, FakeClaude(search_text=_SEARCH_JSON), 7)
+        self.assertEqual([t.id for t in out], [1, 2])
+        self.assertTrue(out[0].resources)  # "wall stud" topic got resources
+        self.assertEqual(out[0].resources[0].type, "video")
+        self.assertTrue(session.committed)
+
+    def test_missing_project_raises_404(self):
+        with self.assertRaises(HTTPException) as ctx:
+            refresh_project_research(_FakeSession(project_exists=False), FakeClaude(), 7)
+        self.assertEqual(ctx.exception.status_code, 404)
+
+    def test_no_topics_returns_empty(self):
+        out = refresh_project_research(_FakeSession(topics=[]), FakeClaude(search_text=_SEARCH_JSON), 7)
+        self.assertEqual(out, [])
+
+    def test_upstream_failure_raises_502(self):
+        claude = FakeClaude()
+        claude.search_error = ClaudeError("web search down")
+        with self.assertRaises(HTTPException) as ctx:
+            refresh_project_research(_FakeSession(topics=_research_rows()), claude, 7)
+        self.assertEqual(ctx.exception.status_code, 502)
+
+
+class ResearchRouteTests(unittest.TestCase):
+    def setUp(self):
+        from fastapi.testclient import TestClient
+
+        from app.main import app
+
+        self.app = app
+        self.session = _FakeSession(topics=_research_rows())
+        self.claude = FakeClaude(search_text=_SEARCH_JSON)
+        app.dependency_overrides[get_session] = lambda: self.session
+        app.dependency_overrides[get_claude_client] = lambda: self.claude
+        self.client = TestClient(app)
+
+    def tearDown(self):
+        self.app.dependency_overrides.clear()
+
+    def test_refresh_returns_refreshed_topics(self):
+        r = self.client.post("/projects/7/research/refresh")
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertEqual([t["id"] for t in body], [1, 2])
+        self.assertTrue(body[0]["resources"])
+        self.assertEqual(body[0]["resources"][0]["type"], "video")
+
+    def test_refresh_missing_project_404(self):
+        self.session._first = None
+        r = self.client.post("/projects/7/research/refresh")
+        self.assertEqual(r.status_code, 404)
 
 
 if __name__ == "__main__":
