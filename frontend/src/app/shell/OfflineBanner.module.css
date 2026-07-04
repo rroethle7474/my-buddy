@@ -1,0 +1,12 @@
+.banner {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  padding: 8px clamp(20px, 5vw, 34px);
+  background: var(--gold-tint);
+  color: var(--gold-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 1px solid #eeddb0;
+}

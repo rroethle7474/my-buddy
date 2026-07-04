@@ -1,6 +1,7 @@
 import { Outlet, ScrollRestoration } from "react-router-dom";
 import { TopNav } from "./TopNav";
 import { Footer } from "./Footer";
+import { OfflineBanner } from "./OfflineBanner";
 import styles from "./AppShell.module.css";
 
 /**
@@ -12,6 +13,7 @@ export function AppShell() {
   return (
     <>
       <TopNav />
+      <OfflineBanner />
       <main className={styles.main}>
         <Outlet />
       </main>

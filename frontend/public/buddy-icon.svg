@@ -1,0 +1,69 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="My Buddy">
+  <!-- App/PWA icon: static Buddy on his spotlight panel. Background fills the
+       whole canvas and the mascot sits inside the maskable safe zone (central
+       80%), so platform masks (circle/squircle) never clip him. Recolors from
+       the same token hexes as the mascot (§16.1/§16.4). -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="18%" r="90%">
+      <stop offset="0%" stop-color="#f0f6fd"/>
+      <stop offset="60%" stop-color="#e3eefa"/>
+      <stop offset="100%" stop-color="#d3e4f6"/>
+    </radialGradient>
+    <clipPath id="collarClip"><rect x="96" y="146" width="68" height="16" rx="8"/></clipPath>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect x="0" y="0" width="512" height="10" fill="#2e7cc2" opacity="0"/>
+
+  <g transform="translate(100,66) scale(1.2)">
+    <!-- feet -->
+    <rect x="90" y="262" width="30" height="30" rx="13" fill="#2e7cc2"/>
+    <rect x="140" y="262" width="30" height="30" rx="13" fill="#2e7cc2"/>
+    <rect x="90" y="285" width="30" height="7" rx="3.5" fill="#eaf2fb"/>
+    <rect x="140" y="285" width="30" height="7" rx="3.5" fill="#eaf2fb"/>
+    <!-- torso -->
+    <rect x="76" y="150" width="108" height="120" rx="42" fill="#de3b2c"/>
+    <rect x="90" y="162" width="34" height="20" rx="10" fill="#ffffff" opacity="0.14"/>
+    <!-- arms + mitt hands -->
+    <path d="M84 174 Q70 202 66 232" stroke="#de3b2c" stroke-width="26" stroke-linecap="round" fill="none"/>
+    <path d="M176 174 Q198 150 206 120" stroke="#de3b2c" stroke-width="26" stroke-linecap="round" fill="none"/>
+    <circle cx="66" cy="234" r="15" fill="#f7f7f3" stroke="#1b1b19" stroke-width="2.5"/>
+    <circle cx="206" cy="118" r="15" fill="#f7f7f3" stroke="#1b1b19" stroke-width="2.5"/>
+    <!-- rainbow collar -->
+    <g clip-path="url(#collarClip)">
+      <rect x="96" y="146" width="12" height="16" fill="#de3b2c"/>
+      <rect x="108" y="146" width="12" height="16" fill="#e8722e"/>
+      <rect x="120" y="146" width="12" height="16" fill="#edc24c"/>
+      <rect x="132" y="146" width="12" height="16" fill="#2e8b57"/>
+      <rect x="144" y="146" width="12" height="16" fill="#2e7cc2"/>
+      <rect x="156" y="146" width="12" height="16" fill="#7a5ea8"/>
+    </g>
+    <!-- gold heart badge -->
+    <rect x="100" y="187" width="60" height="44" rx="12" fill="#edc24c" stroke="#1b1b19" stroke-width="2.5"/>
+    <path d="M130 219 C123 213 117 208 117 202.5 C117 198 120.5 195 124.5 195 C127 195 129 196.5 130 198.5 C131 196.5 133 195 135.5 195 C139.5 195 143 198 143 202.5 C143 208 137 213 130 219 Z" fill="#de3b2c"/>
+    <!-- head -->
+    <rect x="80" y="100" width="12" height="26" rx="6" fill="#2e7cc2"/>
+    <rect x="168" y="100" width="12" height="26" rx="6" fill="#2e7cc2"/>
+    <rect x="88" y="70" width="84" height="82" rx="28" fill="#f7f7f3" stroke="#1b1b19" stroke-width="3"/>
+    <!-- cheeks + freckles -->
+    <circle cx="101" cy="126" r="8" fill="#de3b2c" opacity="0.22"/>
+    <circle cx="159" cy="126" r="8" fill="#de3b2c" opacity="0.22"/>
+    <g fill="#1b1b19" opacity="0.4">
+      <circle cx="99" cy="123" r="1.1"/><circle cx="104" cy="121" r="1.1"/><circle cx="102" cy="127" r="1.1"/>
+      <circle cx="161" cy="123" r="1.1"/><circle cx="156" cy="121" r="1.1"/><circle cx="158" cy="127" r="1.1"/>
+    </g>
+    <!-- eyes -->
+    <ellipse cx="113" cy="108" rx="8" ry="10" fill="#1b1b19"/>
+    <ellipse cx="147" cy="108" rx="8" ry="10" fill="#1b1b19"/>
+    <circle cx="116" cy="104" r="2.6" fill="#ffffff"/>
+    <circle cx="150" cy="104" r="2.6" fill="#ffffff"/>
+    <!-- smile -->
+    <path d="M118 130 Q130 140 142 130" stroke="#1b1b19" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- cap -->
+    <path d="M97 75 Q130 38 163 75 Z" fill="#2e7cc2"/>
+    <ellipse cx="150" cy="77" rx="24" ry="7" fill="#2e7cc2"/>
+    <path d="M99 74 Q130 58 161 74" stroke="#256aa8" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <rect x="128.4" y="43" width="3.2" height="14" rx="1.6" fill="#1b1b19"/>
+    <circle cx="130" cy="41" r="5" fill="#edc24c" stroke="#1b1b19" stroke-width="1.5"/>
+  </g>
+</svg>
