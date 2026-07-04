@@ -1,0 +1,58 @@
+# my-buddy backend — production image (ARCHITECTURE.md §3, TASKS.md E1).
+#
+# Multi-stage: the builder installs the app + its dependencies into a
+# self-contained virtualenv; the runtime stage copies that venv into a slim
+# base and runs as a NON-ROOT user. No --reload, no dev extras. On start the
+# entrypoint applies DB migrations (`alembic upgrade head`) and then execs
+# uvicorn. Secrets are supplied via the environment (never baked in) — see
+# docker-compose.prod.yml + .env.prod.example.
+
+# ---- build stage ----------------------------------------------------------
+FROM python:3.12-slim AS builder
+
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /src
+# hatchling packages only `app` (pyproject: tool.hatch.build.targets.wheel), so
+# the build needs the package source + pyproject.
+COPY pyproject.toml ./
+COPY app ./app
+RUN pip install .
+
+# ---- runtime stage --------------------------------------------------------
+FROM python:3.12-slim AS runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+# Ready-built venv (deps + installed `app` package).
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /app
+# App source + migration assets. The wheel ships only `app`, so alembic/ and
+# alembic.ini must be copied explicitly for `alembic upgrade head` at start.
+COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini ./alembic.ini
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+# Non-root user. Own the storage root so the named volume inherits write
+# permission on first mount (Docker seeds an empty named volume from the image
+# directory's ownership).
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && useradd --create-home --uid 10001 appuser \
+    && mkdir -p /data/storage \
+    && chown -R appuser:appuser /data/storage /app
+
+USER appuser
+
+EXPOSE 8000
+
+# Apply migrations, then hand off to the CMD (uvicorn).
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

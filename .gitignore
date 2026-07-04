@@ -5,6 +5,8 @@
 # DO track the template so agents know which vars exist (inline comments
 # don't work in .gitignore — the negation below must be on its own line)
 !.env.example
+# ...and the production compose env template (documents prod vars; no secrets).
+!.env.prod.example
 *.pem
 *.key
 

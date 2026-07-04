@@ -1,0 +1,22 @@
+# Keep the build context small and secret-free (TASKS.md E1).
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Never ship env/secrets into an image (§14).
+.env
+.env.*
+
+# Not needed at runtime.
+tests/
+scripts/
+README.md
+Dockerfile
+Dockerfile.prod
+.dockerignore

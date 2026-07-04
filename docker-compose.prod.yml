@@ -1,0 +1,89 @@
+# my-buddy — PRODUCTION stack (TASKS.md E1). Target: Coolify-on-Hetzner behind
+# Cloudflare Access (SERVER-SETUP.md / D2). Distinct from the root
+# docker-compose.yml, which is the local dev stack.
+#
+#   web (nginx)  ── serves the built PWA + reverse-proxies the API  ── one origin
+#     │
+#   app (uvicorn, non-root, migrations-on-start)
+#     │
+#   db  (postgres)                 pgdata   -> named volume
+#   app storage /data/storage      storage  -> named volume
+#
+# Secrets come from the environment (Coolify UI, or a local .env alongside this
+# file — see .env.prod.example). They are NEVER baked into images. `${VAR:?msg}`
+# fails fast if a required secret is missing or empty; `${VAR:-default}` supplies
+# a safe default (and neutralizes the empty-VAR-overrides-default gotcha).
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-my_buddy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-my_buddy}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-my_buddy} -d ${POSTGRES_DB:-my_buddy}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Built from the Postgres creds above — single source of truth for creds.
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-my_buddy}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-my_buddy}
+      # Server-side only — never reaches the client (§7).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY is required}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-4-8}
+      # Storage adapter (§3 / D3): local volume, read via the adapter only (§14).
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_PATH: /data/storage
+      # Public URL (absolute links). Set to your real domain in prod.
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      # Auth is at the edge (Cloudflare Access, D2) — zero auth code in the app.
+      AUTH_MODE: cloudflare_access
+    volumes:
+      - storage_data:/data/storage
+    healthcheck:
+      # No curl in the slim image — use Python's stdlib against /health.
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status==200 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s   # allow time for `alembic upgrade head` on first boot
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    # Coolify maps the public domain to this container's port 80. Publishing to
+    # the host lets you exercise the full stack locally with a plain
+    # `docker compose -f docker-compose.prod.yml up`.
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  storage_data:

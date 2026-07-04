@@ -1,0 +1,16 @@
+# Keep the build context small and secret-free (TASKS.md E1).
+node_modules/
+dist/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Never ship env/secrets into an image (§14).
+.env
+.env.*
+
+# Not needed inside the image.
+Dockerfile
+Dockerfile.prod
+.dockerignore
+*.log
