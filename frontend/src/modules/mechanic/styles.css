@@ -670,6 +670,21 @@
   color: var(--c-muted-3);
   font-style: italic;
 }
+.mech-research-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--c-border);
+  font-size: 13.5px;
+  color: var(--c-muted-2);
+}
+@media print {
+  .mech-research-cta {
+    display: none;
+  }
+}
 
 /* --- footer disclaimer -------------------------------------------------- */
 .mech-footer {

@@ -35,6 +35,8 @@ export function MechanicProject({
   api,
   showReadyBanner = false,
   researchLoading = false,
+  researchError = false,
+  onResearchRefresh,
   onDownloadAll,
 }: {
   api: MechanicProjectApi;
@@ -42,6 +44,10 @@ export function MechanicProject({
   /** The research refresh (§7.2) is in flight — the research section shows a
    *  gathering state until resources land (02:40Z DECISION). */
   researchLoading?: boolean;
+  /** The last refresh failed — the research section offers a retry. */
+  researchError?: boolean;
+  /** Fire (or re-fire) the research refresh; rendered as an explicit action. */
+  onResearchRefresh?: () => void;
   onDownloadAll?: () => void;
 }) {
   const { project, error, clearError } = api;
@@ -178,7 +184,12 @@ export function MechanicProject({
           onToggle={api.toggleStep}
           onNote={api.setStepNote}
         />
-        <ResearchSection topics={project.research_topics} loading={researchLoading} />
+        <ResearchSection
+          topics={project.research_topics}
+          loading={researchLoading}
+          error={researchError}
+          onRefresh={onResearchRefresh}
+        />
         <PhotosSection
           photos={project.photos}
           onUpload={api.uploadPhoto}

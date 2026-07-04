@@ -40,12 +40,23 @@ function ResourceLink({ resource }: { resource: ResearchResource }) {
 export function ResearchSection({
   topics,
   loading = false,
+  error = false,
+  onRefresh,
 }: {
   topics: ResearchTopicRead[];
   /** The research web-search pass (§7.2) is still running — show a gentle
    *  "gathering" state on topics whose resources haven't landed yet. */
   loading?: boolean;
+  /** The last refresh failed — offer a retry instead of spinning forever. */
+  error?: boolean;
+  /** Fire (or re-fire) the refresh. Always an explicit action: a refresh runs
+   *  real (billed) web searches, so it must never re-run silently on load. */
+  onRefresh?: () => void;
 }) {
+  const unfilled =
+    topics.length > 0 && topics.every((t) => t.resources.length === 0);
+  const showAction = !loading && onRefresh !== undefined && (error || unfilled);
+
   return (
     <section className="mech-section" id="research" aria-labelledby="research-h">
       <SectionHead
@@ -57,10 +68,28 @@ export function ResearchSection({
         sub={
           loading
             ? "Finding good resources for you…"
-            : `${topics.length} things worth a look before you start`
+            : error
+              ? "We couldn't fetch resources just now"
+              : `${topics.length} things worth a look before you start`
         }
       />
       <div className="mech-card">
+        {showAction && (
+          <div className="mech-research-cta" role={error ? "alert" : undefined}>
+            <span>
+              {error
+                ? "The resource search didn't make it through — it may be busy."
+                : "Resources haven't been gathered for this build yet."}
+            </span>
+            <button
+              type="button"
+              className="mech-btn mech-btn--primary mech-btn--sm"
+              onClick={onRefresh}
+            >
+              {error ? "Try again" : "Find resources"}
+            </button>
+          </div>
+        )}
         {topics.length === 0 && (
           <div className="mech-empty">No research topics for this build.</div>
         )}
@@ -80,7 +109,7 @@ export function ResearchSection({
                 </span>
               ) : (
                 <span className="mech-resource--empty">
-                  Resources are still being gathered for this topic.
+                  No resources gathered yet.
                 </span>
               )}
             </div>

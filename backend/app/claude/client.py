@@ -18,9 +18,11 @@ key (Phase-0 imports, tests, and tooling stay green without one).
 
 from __future__ import annotations
 
+import time
 from typing import List, Optional
 
 import anthropic
+from pydantic import ValidationError
 
 from ..config import settings
 from ..schemas.spec import ProjectSpec
@@ -106,34 +108,50 @@ class ClaudeClient:
         messages: List[dict],
         output_format: type,
         max_tokens: int = 2048,
+        max_retries: int = 1,
     ):
         """Return a validated instance of ``output_format`` (a Pydantic model).
 
         Used for the structured turn decision on each /messages turn. No
         thinking — the classification is simple and this keeps turns fast (the
         finalize path likewise runs structured output without thinking).
+
+        The SDK raises pydantic ``ValidationError`` when the model emits
+        malformed/truncated JSON — a transient model flake, so it is retried up
+        to ``max_retries`` times, then surfaced as ``ClaudeError`` (→ the
+        endpoint's 502 path) rather than escaping as an unhandled 500.
         """
-        try:
-            resp = self.client.messages.parse(
-                model=self.model,
-                max_tokens=max_tokens,
-                system=system,
-                messages=messages,
-                output_format=output_format,
-            )
-        except anthropic.APIError as exc:
-            raise ClaudeError(f"Claude structured call failed: {exc}") from exc
+        last_exc: Optional[ValidationError] = None
+        for _ in range(max_retries + 1):
+            try:
+                resp = self.client.messages.parse(
+                    model=self.model,
+                    max_tokens=max_tokens,
+                    system=system,
+                    messages=messages,
+                    output_format=output_format,
+                )
+            except anthropic.APIError as exc:
+                raise ClaudeError(f"Claude structured call failed: {exc}") from exc
+            except ValidationError as exc:
+                last_exc = exc
+                continue
 
-        if getattr(resp, "stop_reason", None) == "refusal":
-            raise ClaudeError("Claude declined to respond to this request.")
+            if getattr(resp, "stop_reason", None) == "refusal":
+                raise ClaudeError("Claude declined to respond to this request.")
 
-        parsed = getattr(resp, "parsed_output", None)
-        if parsed is None:
-            raise ClaudeError(
-                f"Claude returned no structured output (stop_reason="
-                f"{getattr(resp, 'stop_reason', None)})."
-            )
-        return parsed
+            parsed = getattr(resp, "parsed_output", None)
+            if parsed is None:
+                raise ClaudeError(
+                    f"Claude returned no structured output (stop_reason="
+                    f"{getattr(resp, 'stop_reason', None)})."
+                )
+            return parsed
+
+        raise ClaudeError(
+            f"Claude returned malformed structured output after "
+            f"{max_retries + 1} attempt(s): {last_exc}"
+        ) from last_exc
 
     # ── finalize → validated §6 spec (§7.1) ──────────────────────────────────
     def generate_spec(
@@ -165,6 +183,23 @@ class ClaudeClient:
                 )
             except anthropic.APIError as exc:
                 raise ClaudeError(f"Claude finalize call failed: {exc}") from exc
+            except ValidationError as exc:
+                # The SDK's structured-output parser raises on malformed or
+                # truncated model JSON — recoverable the same way as a spec-gate
+                # failure, so it joins the corrective re-request loop.
+                last_error = SpecValidationError(f"response was not valid JSON: {exc}")
+                if attempt >= max_retries:
+                    break
+                convo = convo + [
+                    {
+                        "role": "user",
+                        "content": (
+                            "That response was not valid JSON. Return only the "
+                            "corrected JSON object matching the schema."
+                        ),
+                    }
+                ]
+                continue
 
             if getattr(resp, "stop_reason", None) == "refusal":
                 raise ClaudeError("Claude declined to generate the project spec.")
@@ -207,6 +242,8 @@ class ClaudeClient:
         max_tokens: int = 8000,
         max_uses: int = 5,
         max_rounds: int = 6,
+        round_timeout_s: float = 60.0,
+        deadline_s: float = 150.0,
     ) -> str:
         """Run a web-search-enabled call and return the model's final text.
 
@@ -214,15 +251,29 @@ class ClaudeClient:
         Opus 4.8) and drives the server-tool loop, re-sending on ``pause_turn``
         (the server hit its per-turn tool-iteration cap). This is the ONLY place
         the app reaches the web (§7.2).
+
+        Every round runs with an explicit request timeout and SDK-level retries
+        disabled, all under one ``deadline_s`` budget. Without these, a hung
+        upstream call holds the request for the SDK's ~10-minute default times
+        its retry count — pinning the caller (and any UI waiting on it) while
+        still billing the searches.
         """
         tools = [
             {"type": "web_search_20260209", "name": "web_search", "max_uses": max_uses}
         ]
         convo = list(messages)
         resp = None
+        started = time.monotonic()
         for _ in range(max_rounds):
+            remaining = deadline_s - (time.monotonic() - started)
+            if remaining <= 0:
+                raise ClaudeError(
+                    f"Research web search exceeded its {deadline_s:.0f}s deadline."
+                )
             try:
-                resp = self.client.messages.create(
+                resp = self.client.with_options(
+                    timeout=min(round_timeout_s, remaining), max_retries=0
+                ).messages.create(
                     model=self.model,
                     max_tokens=max_tokens,
                     system=system,

@@ -12,6 +12,9 @@ from __future__ import annotations
 import json
 import unittest
 
+from pydantic import TypeAdapter
+from pydantic import ValidationError as PydanticValidationError
+
 from app.claude import prompts
 from app.claude.client import ClaudeClient, ClaudeError
 from app.claude.session_store import SessionNotFound, SessionStore
@@ -265,12 +268,27 @@ class _Messages:
 class _FakeAnthropic:
     def __init__(self, create_fn=None, parse_fn=None):
         self.messages = _Messages(create_fn, parse_fn)
+        self.option_calls: list = []
+
+    def with_options(self, **kwargs):
+        self.option_calls.append(kwargs)
+        return self
 
 
 def _client_with(create_fn=None, parse_fn=None) -> ClaudeClient:
     c = ClaudeClient(api_key="test-key")
     c._client = _FakeAnthropic(create_fn=create_fn, parse_fn=parse_fn)
     return c
+
+
+def _invalid_json_error() -> PydanticValidationError:
+    """A real pydantic ValidationError of the kind the SDK's structured-output
+    parser raises on malformed/truncated model JSON (seen live 2026-07-04)."""
+    try:
+        TypeAdapter(dict).validate_json('{"kind": "truncat')
+    except PydanticValidationError as exc:
+        return exc
+    raise AssertionError("expected invalid JSON to raise")
 
 
 class ClientTests(unittest.TestCase):
@@ -353,6 +371,60 @@ class ClientTests(unittest.TestCase):
         c = _client_with(parse_fn=lambda **kw: resp)
         with self.assertRaises(ClaudeError):
             c.generate_spec(system="s", messages=[])
+
+    def test_parse_retries_malformed_json_then_succeeds(self):
+        calls = {"n": 0}
+        parsed = {"kind": "clarifying"}
+
+        def parse_fn(**kw):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise _invalid_json_error()
+            return _Resp([_Block("text", "{}")], parsed_output=parsed)
+
+        c = _client_with(parse_fn=parse_fn)
+        out = c.parse(system="s", messages=[], output_format=dict)
+        self.assertIs(out, parsed)
+        self.assertEqual(calls["n"], 2)
+
+    def test_parse_malformed_json_exhausts_to_claude_error(self):
+        def parse_fn(**kw):
+            raise _invalid_json_error()
+
+        c = _client_with(parse_fn=parse_fn)
+        with self.assertRaises(ClaudeError):
+            c.parse(system="s", messages=[], output_format=dict, max_retries=1)
+
+    def test_generate_spec_malformed_json_retries_then_succeeds(self):
+        calls = {"n": 0}
+        spec = ProjectSpec.model_validate(VALID_SPEC)
+
+        def parse_fn(**kw):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise _invalid_json_error()
+            return _Resp([_Block("text", "{...}")], parsed_output=spec)
+
+        c = _client_with(parse_fn=parse_fn)
+        out = c.generate_spec(system="s", messages=[], max_retries=1)
+        self.assertIs(out, spec)
+        self.assertEqual(calls["n"], 2)
+
+    def test_web_search_deadline_exceeded_raises(self):
+        c = _client_with(create_fn=lambda **kw: _Resp([_Block("text", "[]")]))
+        with self.assertRaises(ClaudeError):
+            c.web_search(system="s", messages=[], deadline_s=0)
+
+    def test_web_search_sets_timeout_and_disables_sdk_retries(self):
+        c = _client_with(create_fn=lambda **kw: _Resp([_Block("text", "[]")]))
+        out = c.web_search(
+            system="s", messages=[], round_timeout_s=60, deadline_s=150
+        )
+        self.assertEqual(out, "[]")
+        opts = c._client.option_calls[0]
+        self.assertEqual(opts["max_retries"], 0)
+        self.assertGreater(opts["timeout"], 0)
+        self.assertLessEqual(opts["timeout"], 60)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
