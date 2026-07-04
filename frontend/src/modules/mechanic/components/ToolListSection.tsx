@@ -62,8 +62,7 @@ function ToolRow({
         {tool.acquire && onOwn && (
           <button
             type="button"
-            className="mech-nav__pill"
-            style={{ marginTop: 10, fontSize: 13, padding: "6px 12px" }}
+            className="mech-own-btn"
             onClick={() => onOwn(tool.id)}
           >
             ✓ I have this now

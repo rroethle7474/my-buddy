@@ -34,6 +34,13 @@ function StepNote({
           if (draft !== (value ?? "")) onSave(draft);
         }}
       />
+      {/* Print/PDF copy: render the note as static text (only if one exists). */}
+      {draft.trim() && (
+        <>
+          <div className="mech-note__print-label">Your notes</div>
+          <p className="mech-note__print">{draft}</p>
+        </>
+      )}
     </div>
   );
 }

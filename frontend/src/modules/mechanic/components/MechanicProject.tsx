@@ -61,7 +61,22 @@ export function MechanicProject({
     { key: "research", label: "Research" },
   ];
 
-  const download = onDownloadAll ?? (() => window.print());
+  // Default "Download all" (D5): client-side print → the user picks "Save as
+  // PDF". The @media print stylesheet (styles.css) produces the clean copy.
+  // The shell may inject its own handler; otherwise we briefly set the document
+  // title so the default PDF filename is the project name, then restore it.
+  const download =
+    onDownloadAll ??
+    (() => {
+      const prevTitle = document.title;
+      document.title = project.name;
+      const restore = () => {
+        document.title = prevTitle;
+        window.removeEventListener("afterprint", restore);
+      };
+      window.addEventListener("afterprint", restore);
+      window.print();
+    });
 
   return (
     <div className="mech">
@@ -69,10 +84,23 @@ export function MechanicProject({
         {showReadyBanner && <PlanReadyBanner onDownloadAll={download} />}
 
         <header className="mech-header">
-          <span className="mech-eyebrow">My Mechanic</span>
-          <h1 className="mech-h1" style={{ marginTop: 8 }}>
-            {project.name}
-          </h1>
+          <div className="mech-header__top">
+            <div>
+              <span className="mech-eyebrow">My Mechanic</span>
+              <h1 className="mech-h1" style={{ marginTop: 8 }}>
+                {project.name}
+              </h1>
+            </div>
+            <div className="mech-header__actions">
+              <button
+                type="button"
+                className="mech-btn mech-btn--ghost mech-btn--sm"
+                onClick={download}
+              >
+                ↓ Download all
+              </button>
+            </div>
+          </div>
 
           <div className="mech-facts">
             {diff && (

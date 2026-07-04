@@ -729,6 +729,130 @@
   }
 }
 
+/* --- header download action --------------------------------------------- */
+.mech-header__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.mech-btn--sm {
+  font-size: 13.5px;
+  padding: 9px 15px;
+  flex: 0 0 auto;
+}
+
+/* --- "I have this now" (shop-diff bucket move) --------------------------- */
+.mech-own-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--c-border-2);
+  background: var(--c-white);
+  color: var(--c-green-ink);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.mech-own-btn:hover {
+  background: var(--c-green-tint);
+  border-color: var(--c-green-tint-2);
+}
+
+/* --- print-only content (hidden on screen, revealed for paper/PDF) ------- */
+.mech-note__print,
+.mech-resource__url {
+  display: none;
+}
+.mech-note__print {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #33332e;
+  white-space: pre-wrap;
+  margin: 4px 0 0;
+}
+.mech-note__print-label {
+  display: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-muted-3);
+}
+
+/* ==========================================================================
+   PRINT — "Download all" (D5). Client-side print stylesheet (v1): window.print()
+   → Save as PDF. Uses @media print (robust, incl. iOS Safari) rather than a
+   beforeprint class so it works without JS. Strips interactive chrome, turns
+   editable fields into static text, keeps the four sections + the §16.4 safety
+   disclaimer, and avoids awkward page breaks.
+   ========================================================================== */
+@media print {
+  /* honor the brand colors on paper (badges, safety callouts, checkboxes) */
+  .mech,
+  .mech * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .mech-doc {
+    max-width: none;
+    padding: 0;
+  }
+
+  /* drop screen-only interactive chrome */
+  .mech-nav,
+  .mech-ready,
+  .mech-own-btn,
+  .mech-header__actions,
+  .mech-note__field,
+  .mech-note__label {
+    display: none !important;
+  }
+
+  /* editable notes → static text (only when the user wrote one) */
+  .mech-note__print,
+  .mech-note__print-label {
+    display: block;
+  }
+
+  /* resource links → show the URL so a paper copy is usable */
+  .mech-resource__url {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--c-muted-3);
+    word-break: break-all;
+  }
+  .mech-resource__arrow {
+    display: none;
+  }
+  .mech-resource {
+    border-color: var(--c-border);
+  }
+
+  /* flatten shadows; keep logical blocks intact across pages */
+  .mech-card,
+  .mech-step,
+  .mech-resource {
+    box-shadow: none;
+  }
+  .mech-step,
+  .mech-row,
+  .mech-topic,
+  .mech-resource,
+  .mech-safety-note,
+  .mech-footer {
+    break-inside: avoid;
+  }
+  .mech-section-head,
+  .mech-h1 {
+    break-after: avoid;
+  }
+  .mech-section {
+    scroll-margin-top: 0;
+  }
+}
+
 /* --- reduced motion ----------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .mech *,
