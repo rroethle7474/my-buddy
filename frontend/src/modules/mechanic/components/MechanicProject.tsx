@@ -32,10 +32,14 @@ function looksHazardous(text: string): boolean {
 export function MechanicProject({
   api,
   showReadyBanner = false,
+  researchLoading = false,
   onDownloadAll,
 }: {
   api: MechanicProjectApi;
   showReadyBanner?: boolean;
+  /** The research refresh (§7.2) is in flight — the research section shows a
+   *  gathering state until resources land (02:40Z DECISION). */
+  researchLoading?: boolean;
   onDownloadAll?: () => void;
 }) {
   const { project } = api;
@@ -166,7 +170,7 @@ export function MechanicProject({
           onToggle={api.toggleStep}
           onNote={api.setStepNote}
         />
-        <ResearchSection topics={project.research_topics} />
+        <ResearchSection topics={project.research_topics} loading={researchLoading} />
 
         <SafetyDisclaimer />
       </div>

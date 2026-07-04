@@ -13,7 +13,7 @@
 // Until then it's fully interactive against the fixture, so the read view is
 // demoable end-to-end offline.
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectRead } from "../types";
 
 export interface MechanicProjectApi {
@@ -32,6 +32,18 @@ export interface MechanicProjectApi {
 
 export function useMechanicProject(initial: ProjectRead): MechanicProjectApi {
   const [project, setProject] = useState<ProjectRead>(initial);
+
+  // Re-sync when the caller hands us a new project object (live load settling, or
+  // the research refresh merging in). A stable `initial` (e.g. the D1 fixture) never
+  // triggers this, so local toggles persist in the preview. D3 replaces the local
+  // mutations with server-backed ones.
+  const seen = useRef(initial);
+  useEffect(() => {
+    if (initial !== seen.current) {
+      seen.current = initial;
+      setProject(initial);
+    }
+  }, [initial]);
 
   const toggleMaterial = useCallback((materialId: number, checked: boolean) => {
     setProject((p) => ({

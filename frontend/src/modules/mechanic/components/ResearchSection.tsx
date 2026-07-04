@@ -37,7 +37,15 @@ function ResourceLink({ resource }: { resource: ResearchResource }) {
   );
 }
 
-export function ResearchSection({ topics }: { topics: ResearchTopicRead[] }) {
+export function ResearchSection({
+  topics,
+  loading = false,
+}: {
+  topics: ResearchTopicRead[];
+  /** The research web-search pass (§7.2) is still running — show a gentle
+   *  "gathering" state on topics whose resources haven't landed yet. */
+  loading?: boolean;
+}) {
   return (
     <section className="mech-section" id="research" aria-labelledby="research-h">
       <SectionHead
@@ -46,7 +54,11 @@ export function ResearchSection({ topics }: { topics: ResearchTopicRead[] }) {
         iconBg={color.greenTint}
         iconFg={color.green}
         title="Research first"
-        sub={`${topics.length} things worth a look before you start`}
+        sub={
+          loading
+            ? "Finding good resources for you…"
+            : `${topics.length} things worth a look before you start`
+        }
       />
       <div className="mech-card">
         {topics.length === 0 && (
@@ -61,6 +73,11 @@ export function ResearchSection({ topics }: { topics: ResearchTopicRead[] }) {
                 topic.resources.map((r, i) => (
                   <ResourceLink key={`${topic.id}-${i}`} resource={r} />
                 ))
+              ) : loading ? (
+                <span className="mech-resource--loading">
+                  <span className="mech-spinner" aria-hidden="true" /> Finding good
+                  resources…
+                </span>
               ) : (
                 <span className="mech-resource--empty">
                   Resources are still being gathered for this topic.

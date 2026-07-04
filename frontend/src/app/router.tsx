@@ -2,8 +2,8 @@ import { createBrowserRouter } from "react-router-dom";
 import { AppShell } from "./shell/AppShell";
 import { HomePage } from "./pages/HomePage";
 import { ModulePage } from "./pages/ModulePage";
-import { NewProjectPlaceholder } from "./pages/NewProjectPlaceholder";
-import { ProjectPlaceholder } from "./pages/ProjectPlaceholder";
+import { NewProjectPage } from "./pages/NewProjectPage";
+import { ProjectPage } from "./pages/ProjectPage";
 import { NotFound } from "./pages/NotFound";
 import { availableModules } from "./modules/registry";
 
@@ -25,8 +25,8 @@ export const router = createBrowserRouter(
         { index: true, element: <HomePage /> },
         ...availableModules.flatMap((m) => [
           { path: m.routeSlug, element: <ModulePage moduleSlug={m.slug} /> },
-          { path: `${m.routeSlug}/new`, element: <NewProjectPlaceholder moduleSlug={m.slug} /> },
-          { path: `${m.routeSlug}/:projectSlug/:view?`, element: <ProjectPlaceholder /> },
+          { path: `${m.routeSlug}/new`, element: <NewProjectPage moduleSlug={m.slug} /> },
+          { path: `${m.routeSlug}/:projectSlug/:view?`, element: <ProjectPage moduleSlug={m.slug} /> },
         ]),
         { path: "*", element: <NotFound /> },
       ],

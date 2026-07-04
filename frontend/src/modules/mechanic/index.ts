@@ -7,11 +7,16 @@
 // scoped styles without a separate import.
 
 import "./styles.css";
+import "./generate.css";
 
 export { MechanicProject } from "./components/MechanicProject";
 export { useMechanicProject } from "./hooks/useMechanicProject";
 export type { MechanicProjectApi } from "./hooks/useMechanicProject";
 export { doorwayPullUpBar } from "./fixtures/doorwayPullUpBar";
+
+// D2 — the generate-via-chat flow (1d/1e) and the docs (1f) route screen.
+export { NewProjectFlow } from "./screens/NewProjectFlow";
+export { ProjectDocsScreen } from "./screens/ProjectDocsScreen";
 export type {
   ProjectRead,
   MaterialRead,
