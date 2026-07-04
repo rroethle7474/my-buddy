@@ -4,7 +4,8 @@ All object storage (progress photos) goes through this S3-style abstraction so
 the volume→R2 swap is a config change, never a code change. §14: 'Storage access
 goes ONLY through the adapter — no direct filesystem/R2 calls in handlers.'
 
-Phase 0: interface only. Implementations are stubs (no real file handling).
+The v1 implementation is local-volume backed; the interface is deliberately
+small so a later R2 adapter can replace it without handler changes.
 """
 
 from __future__ import annotations

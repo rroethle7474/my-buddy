@@ -8,10 +8,13 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from fastapi import APIRouter, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from sqlmodel import Session
 
+from ..db import get_session
 from ..schemas.dtos import PhotoRead
-from . import not_implemented
+from ..services import photos as photo_service
+from ..storage import StorageAdapter, get_storage
 
 router = APIRouter(tags=["photos"])
 
@@ -27,8 +30,17 @@ def upload_photo(
     file: UploadFile = File(...),
     step_id: Optional[int] = Form(default=None),
     caption: Optional[str] = Form(default=None),
+    session: Session = Depends(get_session),
+    storage: StorageAdapter = Depends(get_storage),
 ) -> PhotoRead:
-    not_implemented()
+    return photo_service.upload_project_photo(
+        session,
+        storage,
+        project_id,
+        file,
+        step_id=step_id,
+        caption=caption,
+    )
 
 
 @router.get(
@@ -36,8 +48,11 @@ def upload_photo(
     response_model=List[PhotoRead],
     summary="List a project's photos",
 )
-def list_photos(project_id: int) -> List[PhotoRead]:
-    not_implemented()
+def list_photos(
+    project_id: int,
+    session: Session = Depends(get_session),
+) -> List[PhotoRead]:
+    return photo_service.list_project_photos(session, project_id)
 
 
 @router.delete(
@@ -45,5 +60,9 @@ def list_photos(project_id: int) -> List[PhotoRead]:
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a photo",
 )
-def delete_photo(photo_id: int) -> None:
-    not_implemented()
+def delete_photo(
+    photo_id: int,
+    session: Session = Depends(get_session),
+    storage: StorageAdapter = Depends(get_storage),
+) -> None:
+    photo_service.delete_project_photo(session, storage, photo_id)
