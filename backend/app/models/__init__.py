@@ -1,5 +1,27 @@
-"""SQLModel table definitions (ARCHITECTURE.md §5).
+"""SQLModel table definitions (ARCHITECTURE.md §5)."""
 
-INTENTIONALLY EMPTY in Phase 0. The data model, tables, and migrations are
-Phase 1 (backend-core, §12/§13). Do not populate here during Phase 0.
-"""
+from .tables import (
+    Material,
+    Module,
+    Photo,
+    Project,
+    ResearchTopic,
+    Retrospective,
+    ShopInventory,
+    Step,
+    Tool,
+    User,
+)
+
+__all__ = [
+    "Material",
+    "Module",
+    "Photo",
+    "Project",
+    "ResearchTopic",
+    "Retrospective",
+    "ShopInventory",
+    "Step",
+    "Tool",
+    "User",
+]

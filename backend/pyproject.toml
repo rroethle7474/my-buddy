@@ -4,6 +4,7 @@ version = "0.0.0"
 description = "my-buddy backend — FastAPI app (ARCHITECTURE.md §3). Phase 0 scaffold."
 requires-python = ">=3.11"
 dependencies = [
+    "alembic>=1.14",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
     "pydantic>=2.7",
