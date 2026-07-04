@@ -38,10 +38,19 @@ its own small PR, everyone rebases (COORDINATION.md §5).
 
 ## Status
 
-**Phase 0 (scaffold + contract) is complete and frozen on `main`.** The four
-worktrees (backend-core, claude-service, frontend-shell, mechanic-ui) branch off
-`main` per COORDINATION.md §2. Endpoint bodies are stubs (501) except `/health`;
-no business logic, DB tables, or migrations exist yet — those are Phase 1+.
+**v1 is complete and deployed (2026-07-04).** All build phases — Phase 0
+(scaffold + contract), Phases 1–3 (foundation, integration, polish), and
+Phase 4 (ship-it: production packaging, hardening, deploy) — are done and on
+`main`. All 17 §11 endpoints are live (plus one deliberate out-of-schema byte
+route, `GET /photos/{id}/content` — see §11); Alembic migrations are the schema
+source of truth. The app runs in production via `SERVER-SETUP.md`
+(Coolify-on-Hetzner behind Cloudflare Access — the app has **zero auth code by
+design**, so Access is the security model; never add auth code).
+
+The parallel-build worktrees and the per-phase agent staffing are **historical**
+— see the bus `TASKS.md` for the full ledger. New work starts from `main`.
+Dev-environment quirks and dev-DB cleanup live in `DEV-NOTES.md`. Post-v1
+backlog (in order): offline mutation replay, shop-aware selection bias.
 
 ## First-time setup (per worktree)
 
@@ -60,7 +69,13 @@ cd frontend && npm install && npm run dev
 ```
 
 Or bring up the whole stack (app + Postgres) with `docker-compose up` from the
-repo root once Docker is available.
+repo root (Docker Desktop must be running). Production uses
+`docker-compose.prod.yml` — see `SERVER-SETUP.md`.
+
+Dev tips: run uvicorn with `--timeout-graceful-shutdown 3` (keep-alive sockets
+otherwise hang Ctrl+C), and avoid bare `uv run` (it syncs away the `[dev]`
+extras and regenerates the gitignored `uv.lock`) — activate the venv or use
+`uv run --no-sync`. More in `DEV-NOTES.md`.
 
 ## Regenerating the API contract
 

@@ -195,6 +195,7 @@ This is the app's centerpiece (mocks 1d → 1e → 1f). It's a **bounded convers
 Given a spec's `research_topics`, run a pass that uses the **web search tool** to find one or two solid learning resources per topic (prefer short how-to videos and reputable guides) and fills each topic's `resources[]`.
 
 - Runs as part of the create-project flow — `finalize` returns `resources: []` (fast, deterministic); the client fires `POST /projects/{id}/research/refresh` immediately after committing the spec via `POST /projects`, showing a loading state on the research section. Re-runnable on demand via the same endpoint. *(Decided 2026-07-04; supersedes the earlier "at generation time" wording.)*
+- **Resilience (decided 2026-07-04):** topics are searched in **pair chunks** with per-chunk tolerance — a failed chunk loses only its pair; partial fills persist and return 200 (502 only if every chunk fails). Writes are **non-destructive** (a topic is overwritten only when the pass found resources for it), every search call runs under explicit timeouts with SDK retries disabled, and the client auto-fires the refresh **only once, on the just-created visit** — anything else is an explicit user action, so page loads never silently spend web searches.
 - This is the **only** place external web lookup is used. We do **not** scrape retailer sites for project ideas or materials — materials are described generically ("one 2×4×8 pine stud, lumber aisle").
 
 ### 7.3 Prompt guardrails (both flows)
@@ -300,6 +301,14 @@ Auth: if D2 = Cloudflare Access, there are **no** auth endpoints — the edge ha
 
 ## 12. Build phases
 
+> **Status (2026-07-04): the build is complete and v1 is deployed.** Everything
+> below shipped, in a slightly different decomposition than planned — the
+> as-built ledger (per-task rows, verification notes, decisions) is the bus
+> `TASKS.md`. A "Phase 4 — ship it" (production packaging + `SERVER-SETUP.md`
+> + hardening) followed Phase 3 and is also done. Two planned Phase-3 items
+> moved to the post-v1 backlog by decision: offline mutation replay and
+> shop-aware project selection.
+
 Phase 0 is shared/blocking. After it, the columns run in parallel (§13).
 
 - **Phase 0 — Scaffold + contract (blocking).** Repo layout (§10), `docker-compose` (app + Postgres), the spec schema (§6) as JSON Schema + Pydantic model, empty routers matching §11, OpenAPI emitting, `openapi-typescript` wired on the FE. *Nothing real works yet, but the contract is frozen.*
@@ -316,6 +325,12 @@ Phase 0 is shared/blocking. After it, the columns run in parallel (§13).
 ---
 
 ## 13. Working in parallel (worktree boundaries)
+
+> **Status (2026-07-04): historical.** The parallel build is finished and the
+> worktrees are retired; new work starts from `main`. The Phase-4 staffing
+> (deploy + polish agents) superseded this table for the ship-it phase — see
+> the bus `TASKS.md`. The **contract-file coordination rules below remain in
+> force** for any future work.
 
 Map agents to worktrees so they don't collide. The **contract files** below are shared; touching them requires coordination (announce on the message queue, land as its own PR, others rebase).
 
