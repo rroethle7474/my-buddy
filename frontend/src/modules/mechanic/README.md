@@ -16,28 +16,30 @@ Renders a project's plan as the **four interactive sections** (ARCHITECTURE.md
 banner, header, sticky section nav, safety disclaimer §16.4). All styling is in
 `styles.css`, scoped under `.mech`, tokens from §16.1 (no invented values).
 
-## Status: D1 (scaffold-ahead) — mocked data
+## Data flow — live (D3)
 
-- Data flows through **`useMechanicProject(project)`** (`hooks/`), which holds the
-  hydrated project in local state and applies mutations in-memory.
-- The fixture **`fixtures/doorwayPullUpBar.ts`** is a full `ProjectRead`
-  (`GET /projects/{id}` shape), used until the live endpoint exists.
+- The docs screen loads the project via **`useProjectBySlug`** (`api/projects.ts`),
+  which resolves the URL slug → id and caches it under `['project', module, slug]`.
+- **`useMechanicProject(project, { moduleSlug, projectSlug })`** (`hooks/`) is the
+  seam: it holds the project for rendering and, in live mode, applies each mutation
+  **optimistically** to both local state and that query-cache entry, then PATCHes
+  the matching §11 endpoint and reconciles the returned entity by id. On failure it
+  rolls back the one changed entity and shows a transient toast (`.mech-toast`) —
+  the graceful offline/error path (§9). Components are untouched (same
+  `MechanicProjectApi`):
+  - `toggleMaterial` → `PATCH /projects/{id}/materials/{mid}` `{ checked }`
+  - `toggleTool` / `setToolOwned` → `PATCH /projects/{id}/tools/{tid}` `{ checked }` / `{ owned }`
+  - `toggleStep` / `setStepNote` → `PATCH /projects/{id}/steps/{sid}` `{ completed }` / `{ note }` (note saves on blur)
+- Called **without** `options` (the fixture preview), the hook stays local-only —
+  no PATCH, no cache writes — so the read view is demoable offline against
+  **`fixtures/doorwayPullUpBar.ts`**.
 - Types are aliased from the generated contract in **`types.ts`** — never
   hand-write API types (COORDINATION.md §6).
 
-## Swapping to live endpoints (D3, on `READY: projects-api`)
-
-Only `useMechanicProject` changes — components are untouched:
-
-- `project` ← `useQuery(['project', id], () => GET /projects/{id})`
-- each mutation fn ← a TanStack `useMutation` with an optimistic update, hitting
-  the matching PATCH (shapes already match §11):
-  - `toggleMaterial` → `PATCH /projects/{id}/materials/{mid}` `{ checked }`
-  - `toggleTool` / `setToolOwned` → `PATCH /projects/{id}/tools/{tid}` `{ checked, owned }`
-  - `toggleStep` / `setStepNote` → `PATCH /projects/{id}/steps/{sid}` `{ completed, note }`
-
-Offline mutation replay is **deferred** (TASKS): offline mutations should fail
-gracefully with a "you're offline" message, not queue.
+Offline mutation *replay* is **deferred** (TASKS): offline mutations fail
+gracefully (rollback + toast), they do not queue. Marking a tool "I have this now"
+currently flips its bucket via the tool PATCH; also adding it to My Shop inventory
+(`POST /shop/inventory`, §8) is a follow-up.
 
 ## PDF export — "Download all" (D5)
 

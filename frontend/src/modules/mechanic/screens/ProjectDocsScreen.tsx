@@ -77,7 +77,7 @@ function ProjectDocs({
   const qc = useQueryClient();
   const refresh = useResearchRefresh();
   const fired = useRef(false);
-  const api = useMechanicProject(project);
+  const api = useMechanicProject(project, { moduleSlug, projectSlug });
 
   useEffect(() => {
     if (fired.current) return;

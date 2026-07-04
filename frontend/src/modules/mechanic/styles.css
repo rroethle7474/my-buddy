@@ -780,6 +780,42 @@
   color: var(--c-muted-3);
 }
 
+/* transient "that didn't save" toast (D3). A live PATCH failed (offline / server
+   error) and the optimistic change was rolled back; we say what happened. */
+.mech-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(92vw, 440px);
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--c-ink);
+  color: var(--c-white);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: 0 14px 34px -12px rgba(20, 20, 20, 0.5);
+}
+.mech-toast__close {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--c-white);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  opacity: 0.75;
+}
+.mech-toast__close:hover {
+  opacity: 1;
+}
+
 /* ==========================================================================
    PRINT — "Download all" (D5). Client-side print stylesheet (v1): window.print()
    → Save as PDF. Uses @media print (robust, incl. iOS Safari) rather than a
@@ -805,7 +841,8 @@
   .mech-own-btn,
   .mech-header__actions,
   .mech-note__field,
-  .mech-note__label {
+  .mech-note__label,
+  .mech-toast {
     display: none !important;
   }
 

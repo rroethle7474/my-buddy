@@ -6,9 +6,64 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../../api/client";
 import type { components } from "../../../api/schema";
-import type { ProjectRead, ResearchTopicRead } from "../types";
+import type {
+  MaterialRead,
+  ProjectRead,
+  ResearchTopicRead,
+  StepRead,
+  ToolRead,
+} from "../types";
 
 type ProjectSpec = components["schemas"]["ProjectSpec"];
+type MaterialUpdate = components["schemas"]["MaterialUpdate"];
+type ToolUpdate = components["schemas"]["ToolUpdate"];
+type StepUpdate = components["schemas"]["StepUpdate"];
+
+// --- Item-state PATCHes (§11, offline-queued-friendly). Each returns the single
+// updated entity (the exact delta), so the caller reconciles its cache by id
+// without re-fetching the whole project. Used by useMechanicProject (D3). ---
+
+/** PATCH /projects/{id}/materials/{mid} — toggle a shopping-cart checkbox. */
+export async function patchMaterial(
+  projectId: number,
+  materialId: number,
+  body: MaterialUpdate,
+): Promise<MaterialRead> {
+  const { data, error } = await api.PATCH(
+    "/projects/{project_id}/materials/{material_id}",
+    { params: { path: { project_id: projectId, material_id: materialId } }, body },
+  );
+  if (error || !data) throw new Error("Could not save that change.");
+  return data;
+}
+
+/** PATCH /projects/{id}/tools/{tid} — toggle `checked` and/or move buckets (`owned`). */
+export async function patchTool(
+  projectId: number,
+  toolId: number,
+  body: ToolUpdate,
+): Promise<ToolRead> {
+  const { data, error } = await api.PATCH(
+    "/projects/{project_id}/tools/{tool_id}",
+    { params: { path: { project_id: projectId, tool_id: toolId } }, body },
+  );
+  if (error || !data) throw new Error("Could not save that change.");
+  return data;
+}
+
+/** PATCH /projects/{id}/steps/{sid} — toggle `completed` / save the journal `note`. */
+export async function patchStep(
+  projectId: number,
+  stepId: number,
+  body: StepUpdate,
+): Promise<StepRead> {
+  const { data, error } = await api.PATCH(
+    "/projects/{project_id}/steps/{step_id}",
+    { params: { path: { project_id: projectId, step_id: stepId } }, body },
+  );
+  if (error || !data) throw new Error("Could not save that change.");
+  return data;
+}
 
 /** POST /projects — the import path: validate + persist + run the shop diff (§8),
  *  returning the hydrated project. Invalidates the projects list so the new build

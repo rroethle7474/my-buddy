@@ -42,7 +42,7 @@ export function MechanicProject({
   researchLoading?: boolean;
   onDownloadAll?: () => void;
 }) {
-  const { project } = api;
+  const { project, error, clearError } = api;
   const diff = difficultyAccent[project.difficulty];
   const status = statusBadge[project.status];
 
@@ -174,6 +174,20 @@ export function MechanicProject({
 
         <SafetyDisclaimer />
       </div>
+
+      {error && (
+        <div className="mech-toast" role="alert">
+          <span>{error}</span>
+          <button
+            type="button"
+            className="mech-toast__close"
+            onClick={clearError}
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }

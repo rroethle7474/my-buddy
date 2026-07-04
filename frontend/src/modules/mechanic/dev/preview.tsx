@@ -7,10 +7,15 @@
 
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MechanicProject } from "../components/MechanicProject";
 import { useMechanicProject } from "../hooks/useMechanicProject";
 import { doorwayPullUpBar } from "../fixtures/doorwayPullUpBar";
 import "../styles.css";
+
+// No `options` → the hook stays local-only (no PATCH, no cache writes); the
+// provider is only here because the hook calls `useQueryClient()` unconditionally.
+const queryClient = new QueryClient();
 
 function Preview() {
   const api = useMechanicProject(doorwayPullUpBar);
@@ -23,6 +28,8 @@ function Preview() {
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <Preview />
+    <QueryClientProvider client={queryClient}>
+      <Preview />
+    </QueryClientProvider>
   </React.StrictMode>,
 );
