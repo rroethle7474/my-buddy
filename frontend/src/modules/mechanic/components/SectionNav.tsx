@@ -1,6 +1,5 @@
 // Sticky section nav (pills) for the four sections. Scrollspy via
-// IntersectionObserver; clicking a pill smooth-scrolls to that section (and
-// scroll-behavior is disabled under prefers-reduced-motion in styles.css).
+// IntersectionObserver; clicking a pill jumps to that section.
 
 import { useEffect, useState } from "react";
 import type { SectionKey } from "../types";
@@ -33,9 +32,16 @@ export function SectionNav({ items }: { items: NavItem[] }) {
     return () => observer.disconnect();
   }, [items]);
 
+  // Jump to a section. We use behavior:"auto" (instant) rather than "smooth"
+  // because Chromium silently no-ops *smooth* programmatic scrolls under a
+  // fractional devicePixelRatio (a scaled/HiDPI window) — the pill highlighted
+  // but the page never moved (F1.2). Instant scrolls work at any DPR, need no
+  // rAF loop (which pauses in background tabs), and are motion-free, so this is
+  // also the correct behavior under prefers-reduced-motion. block:"start" honors
+  // each section's scroll-margin-top (the sticky-nav clearance, styles.css).
   const go = (key: SectionKey) => {
-    document.getElementById(key)?.scrollIntoView({ behavior: "smooth", block: "start" });
     setActive(key);
+    document.getElementById(key)?.scrollIntoView({ behavior: "auto", block: "start" });
   };
 
   return (
