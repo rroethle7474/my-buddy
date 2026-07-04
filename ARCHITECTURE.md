@@ -194,7 +194,7 @@ This is the app's centerpiece (mocks 1d → 1e → 1f). It's a **bounded convers
 
 Given a spec's `research_topics`, run a pass that uses the **web search tool** to find one or two solid learning resources per topic (prefer short how-to videos and reputable guides) and fills each topic's `resources[]`.
 
-- Runs at generation time, and is re-runnable on demand: `POST /projects/{id}/research/refresh`.
+- Runs as part of the create-project flow — `finalize` returns `resources: []` (fast, deterministic); the client fires `POST /projects/{id}/research/refresh` immediately after committing the spec via `POST /projects`, showing a loading state on the research section. Re-runnable on demand via the same endpoint. *(Decided 2026-07-04; supersedes the earlier "at generation time" wording.)*
 - This is the **only** place external web lookup is used. We do **not** scrape retailer sites for project ideas or materials — materials are described generically ("one 2×4×8 pine stud, lumber aisle").
 
 ### 7.3 Prompt guardrails (both flows)
