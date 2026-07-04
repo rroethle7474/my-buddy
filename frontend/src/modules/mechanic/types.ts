@@ -18,10 +18,17 @@ export type ResearchTopicRead = components["schemas"]["ResearchTopicRead"];
 export type ResearchResource = components["schemas"]["ResearchResource"];
 export type PhotoRead = components["schemas"]["PhotoRead"];
 export type RetrospectiveRead = components["schemas"]["RetrospectiveRead"];
+export type RetrospectiveUpsert = components["schemas"]["RetrospectiveUpsert"];
 
 export type Difficulty = components["schemas"]["Difficulty"];
 export type TimeBudget = components["schemas"]["TimeBudget"];
 export type ProjectStatus = components["schemas"]["ProjectStatus"];
 
-// The four rendered sections (§16.3). Values double as anchor ids / nav keys.
-export type SectionKey = "shopping" | "tools" | "tutorial" | "research";
+// The rendered sections (§16.3) — the four interactive sections plus the journal's
+// end-of-project retrospective. Values double as anchor ids / nav keys.
+export type SectionKey =
+  | "shopping"
+  | "tools"
+  | "tutorial"
+  | "research"
+  | "retrospective";

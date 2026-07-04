@@ -18,6 +18,7 @@ import { ShoppingCartSection } from "./ShoppingCartSection";
 import { ToolListSection } from "./ToolListSection";
 import { TutorialSection } from "./TutorialSection";
 import { ResearchSection } from "./ResearchSection";
+import { RetrospectiveSection } from "./RetrospectiveSection";
 import { SafetyDisclaimer } from "./SafetyDisclaimer";
 import { PlanReadyBanner } from "./PlanReadyBanner";
 
@@ -63,6 +64,7 @@ export function MechanicProject({
       count: `${stepsDone}/${project.steps.length}`,
     },
     { key: "research", label: "Research" },
+    { key: "retrospective", label: "Retrospective" },
   ];
 
   // Default "Download all" (D5): client-side print → the user picks "Save as
@@ -171,6 +173,10 @@ export function MechanicProject({
           onNote={api.setStepNote}
         />
         <ResearchSection topics={project.research_topics} loading={researchLoading} />
+        <RetrospectiveSection
+          retrospective={project.retrospective ?? null}
+          onSave={api.saveRetrospective}
+        />
 
         <SafetyDisclaimer />
       </div>

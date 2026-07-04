@@ -816,6 +816,46 @@
   opacity: 1;
 }
 
+/* --- retrospective (§5) — end-of-project reflection form ------------------- */
+.mech-retro {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.mech-retro__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-ink);
+  margin-bottom: 7px;
+}
+.mech-retro__input {
+  font: inherit;
+  font-size: 14px;
+  width: 100%;
+  border: 1px solid var(--c-border-3);
+  border-radius: var(--r-control);
+  padding: 10px 12px;
+  background: var(--c-surface-1);
+  color: var(--c-ink);
+}
+.mech-retro__input::placeholder {
+  color: var(--c-faint);
+}
+.mech-retro__input:hover {
+  background: var(--c-white);
+}
+.mech-retro__skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+.mech-retro__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* ==========================================================================
    PRINT — "Download all" (D5). Client-side print stylesheet (v1): window.print()
    → Save as PDF. Uses @media print (robust, incl. iOS Safari) rather than a
@@ -842,7 +882,8 @@
   .mech-header__actions,
   .mech-note__field,
   .mech-note__label,
-  .mech-toast {
+  .mech-toast,
+  #retrospective {
     display: none !important;
   }
 

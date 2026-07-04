@@ -30,6 +30,9 @@ banner, header, sticky section nav, safety disclaimer §16.4). All styling is in
   - `toggleMaterial` → `PATCH /projects/{id}/materials/{mid}` `{ checked }`
   - `toggleTool` / `setToolOwned` → `PATCH /projects/{id}/tools/{tid}` `{ checked }` / `{ owned }`
   - `toggleStep` / `setStepNote` → `PATCH /projects/{id}/steps/{sid}` `{ completed }` / `{ note }` (note saves on blur)
+  - `saveRetrospective` → `PATCH /projects/{id}/retrospective` (upsert; the
+    `RetrospectiveSection` form, D4) — returns a promise so the form shows its own
+    pending/saved state; on success the cached `project.retrospective` updates.
 - Called **without** `options` (the fixture preview), the hook stays local-only —
   no PATCH, no cache writes — so the read view is demoable offline against
   **`fixtures/doorwayPullUpBar.ts`**.

@@ -10,6 +10,8 @@ import type {
   MaterialRead,
   ProjectRead,
   ResearchTopicRead,
+  RetrospectiveRead,
+  RetrospectiveUpsert,
   StepRead,
   ToolRead,
 } from "../types";
@@ -62,6 +64,19 @@ export async function patchStep(
     { params: { path: { project_id: projectId, step_id: stepId } }, body },
   );
   if (error || !data) throw new Error("Could not save that change.");
+  return data;
+}
+
+/** PATCH /projects/{id}/retrospective — upsert the end-of-project reflection (§5). */
+export async function upsertRetrospective(
+  projectId: number,
+  body: RetrospectiveUpsert,
+): Promise<RetrospectiveRead> {
+  const { data, error } = await api.PATCH(
+    "/projects/{project_id}/retrospective",
+    { params: { path: { project_id: projectId } }, body },
+  );
+  if (error || !data) throw new Error("Could not save your retrospective.");
   return data;
 }
 

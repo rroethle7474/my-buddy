@@ -16,8 +16,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { ProjectRead } from "../types";
-import { patchMaterial, patchStep, patchTool } from "../api/projects";
+import type { ProjectRead, RetrospectiveUpsert } from "../types";
+import {
+  patchMaterial,
+  patchStep,
+  patchTool,
+  upsertRetrospective,
+} from "../api/projects";
 
 export interface MechanicProjectApi {
   project: ProjectRead;
@@ -31,6 +36,9 @@ export interface MechanicProjectApi {
   toggleStep: (stepId: number, completed: boolean) => void;
   /** Save a per-step journal note ("where I got stuck"). */
   setStepNote: (stepId: number, note: string) => void;
+  /** Upsert the end-of-project retrospective (§5). Resolves on save, rejects on
+   *  failure so the form can show its own pending/saved/failed state. */
+  saveRetrospective: (draft: RetrospectiveUpsert) => Promise<void>;
   /** A recent change failed to save and was rolled back (null when all is well). */
   error: string | null;
   /** Dismiss the current error toast. */
@@ -246,6 +254,31 @@ export function useMechanicProject(
     [applyBoth, live],
   );
 
+  const saveRetrospective = useCallback(
+    async (draft: RetrospectiveUpsert) => {
+      if (!live) {
+        applyBoth((p) => ({
+          ...p,
+          retrospective: {
+            id: p.retrospective?.id ?? 0,
+            project_id: p.id,
+            created_at: p.retrospective?.created_at ?? new Date().toISOString(),
+            ...draft,
+          },
+        }));
+        return;
+      }
+      try {
+        const updated = await upsertRetrospective(projectRef.current.id, draft);
+        applyBoth((p) => ({ ...p, retrospective: updated }));
+      } catch {
+        setError("Couldn't save your retrospective — check your connection and try again.");
+        throw new Error(SAVE_FAILED);
+      }
+    },
+    [applyBoth, live],
+  );
+
   return useMemo(
     () => ({
       project,
@@ -254,6 +287,7 @@ export function useMechanicProject(
       setToolOwned,
       toggleStep,
       setStepNote,
+      saveRetrospective,
       error,
       clearError,
     }),
@@ -264,6 +298,7 @@ export function useMechanicProject(
       setToolOwned,
       toggleStep,
       setStepNote,
+      saveRetrospective,
       error,
       clearError,
     ],
