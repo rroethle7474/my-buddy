@@ -1,4 +1,4 @@
-"""Storage adapter (§3/§14): S3-style interface + local-volume stub (D3)."""
+"""Storage adapter (§3/§14): S3-style interface + local-volume implementation."""
 
 from .base import StorageAdapter, StoredObject
 from .local import LocalVolumeStorage, get_storage
