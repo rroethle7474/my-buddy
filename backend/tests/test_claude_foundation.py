@@ -775,6 +775,63 @@ class ResearchTests(unittest.TestCase):
         self.assertEqual(filled.research_topics[0].resources[0].url, "https://ex.com/stud")
 
 
+# Chunked web search with per-topic tolerance (F1.4, Option B). A scripted fake
+# yields a result (text) or raises per web_search call, so we can exercise a
+# partial-failure that still persists the surviving chunks.
+_PAIR_JSON = json.dumps(
+    [
+        {"topic": "x", "resources": [{"title": "A", "url": "https://ex.com/a", "type": "article"}]},
+        {"topic": "y", "resources": [{"title": "B", "url": "https://ex.com/b", "type": "video"}]},
+    ]
+)
+
+
+class _ChunkSearchFake:
+    """web_search stub that plays back a scripted outcome per call."""
+
+    def __init__(self, script):
+        self._script = list(script)  # each item: a ClaudeError to raise, or JSON text
+        self.calls = 0
+
+    def web_search(self, *, system, messages, **kwargs):  # noqa: ARG002 - unused
+        item = self._script[min(self.calls, len(self._script) - 1)]
+        self.calls += 1
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+
+class ResearchChunkingTests(unittest.TestCase):
+    def test_topics_chunked_into_pairs(self):
+        fake = _ChunkSearchFake([_PAIR_JSON, _PAIR_JSON])
+        out = run_research(fake, ["t1", "t2", "t3", "t4"], chunk_size=2)
+        self.assertEqual(fake.calls, 2)  # 4 topics → 2 chunks → 2 web_search calls
+        self.assertEqual(set(out), {"t1", "t2", "t3", "t4"})
+        self.assertTrue(all(len(out[t]) == 1 for t in out))  # each filled (positional)
+
+    def test_partial_chunk_failure_is_tolerated(self):
+        # First chunk's search fails; the second still fills — no exception, the
+        # surviving topics persist (Option B: partial result, not all-or-nothing).
+        fake = _ChunkSearchFake([ClaudeError("chunk 1 down"), _PAIR_JSON])
+        out = run_research(fake, ["t1", "t2", "t3", "t4"], chunk_size=2)
+        self.assertEqual(out["t1"], [])
+        self.assertEqual(out["t2"], [])
+        self.assertTrue(out["t3"])
+        self.assertTrue(out["t4"])
+
+    def test_all_chunks_failing_raises(self):
+        # Every chunk down → a real outage → ClaudeError (→ endpoint 502).
+        fake = _ChunkSearchFake([ClaudeError("down"), ClaudeError("down")])
+        with self.assertRaises(ClaudeError):
+            run_research(fake, ["t1", "t2", "t3", "t4"], chunk_size=2)
+
+    def test_single_chunk_failure_still_raises(self):
+        # A single-chunk input where that chunk fails is also "all chunks failed".
+        fake = _ChunkSearchFake([ClaudeError("down")])
+        with self.assertRaises(ClaudeError):
+            run_research(fake, ["only one"], chunk_size=2)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Research refresh endpoint + service (B3 part 2) — fake DB session
 # ─────────────────────────────────────────────────────────────────────────────
@@ -842,6 +899,23 @@ class ResearchServiceTests(unittest.TestCase):
         self.assertTrue(out[0].resources)  # "wall stud" topic got resources
         self.assertEqual(out[0].resources[0].type, "video")
         self.assertTrue(session.committed)
+
+    def test_preserves_existing_resources_when_search_finds_nothing(self):
+        # A topic already has resources; this pass finds nothing for it → keep
+        # them. A "Find the rest" retry after a partial fill must never wipe
+        # resources an earlier pass gathered (F1.4 non-destructive refresh).
+        prefilled = ResearchTopicRow(
+            id=1, project_id=7, topic="How to find a wall stud", why="w1",
+            resources=[{"title": "Old good link", "url": "https://ex.com/old", "type": "video"}],
+        )
+        still_empty = ResearchTopicRow(id=2, project_id=7, topic="Pilot holes", why="w2", resources=[])
+        session = _FakeSession(topics=[prefilled, still_empty])
+        # Garbage search text → run_research returns empties for both, no ClaudeError.
+        out = refresh_project_research(session, FakeClaude(search_text="no results, sorry"), 7)
+        by_id = {t.id: t for t in out}
+        self.assertEqual(len(by_id[1].resources), 1)  # preserved, not wiped
+        self.assertEqual(by_id[1].resources[0].url, "https://ex.com/old")
+        self.assertEqual(len(by_id[2].resources), 0)  # stays empty
 
     def test_missing_project_raises_404(self):
         with self.assertRaises(HTTPException) as ctx:

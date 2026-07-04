@@ -28,9 +28,15 @@ def refresh_project_research(
 ) -> list[ResearchTopicRead]:
     """Re-populate ``resources[]`` for every research topic of a project (§7.2).
 
-    Raises 404 if the project is missing/soft-deleted, 502 if the upstream
-    web-search call fails. A topic the search found nothing for is written as an
-    empty list (idempotent-friendly, replay-safe — §14).
+    Raises 404 if the project is missing/soft-deleted; 502 only if the whole
+    web-search pass fails (``run_research`` tolerates per-chunk failures and
+    returns partial results — F1.4 / Option B).
+
+    **Non-destructive:** a topic is only overwritten when this pass actually found
+    resources for it. A topic whose chunk failed or came back empty keeps whatever
+    it already had, so a "Find the rest" retry after a partial fill can never wipe
+    resources an earlier pass gathered. Refresh only improves; it never loses
+    results (idempotent-friendly, replay-safe — §14).
     """
     project_exists = session.exec(
         select(ProjectRow.id).where(
@@ -58,8 +64,9 @@ def refresh_project_research(
 
     for topic in topics:
         found = resources_by_topic.get(topic.topic, [])
-        topic.resources = [resource.model_dump(mode="json") for resource in found]
-        session.add(topic)
+        if found:  # only overwrite when this pass found resources — never wipe
+            topic.resources = [resource.model_dump(mode="json") for resource in found]
+            session.add(topic)
     session.commit()
 
     for topic in topics:
