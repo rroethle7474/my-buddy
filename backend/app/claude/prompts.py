@@ -165,6 +165,39 @@ def build_generation_system_prompt(
     )
 
 
+# Appended to the base system prompt for the OPENING message only (mock 1d →
+# 1e). Keeps the first turn a warm greeting + one question; candidate proposals
+# happen on later structured turns, not here.
+OPENING_SYSTEM_ADDENDUM = (
+    "This is your opening message. Greet the user warmly in one or two sentences "
+    "and ask a single first question to get started. If they described a "
+    "project, ask the most useful clarifying question about it. If they were "
+    "vague, offer to suggest a few ideas at their skill level and ask if they "
+    "have anything in mind. Do NOT list specific project candidates yet, and do "
+    "NOT output JSON — just your short message."
+)
+
+# Appended to the base system prompt on every /messages turn, which returns a
+# STRUCTURED turn (kind + agent_message + optional candidates). Explains the
+# turn kinds so the model classifies its own reply; structured output enforces
+# the JSON shape.
+TURN_PROTOCOL_ADDENDUM = (
+    "Each reply you give is ONE turn described by a `kind`:\n"
+    "- \"clarifying\": ask one focused question to pin down the project. Leave "
+    "candidates empty.\n"
+    "- \"proposing\": ONLY when the user is vague or asked you to suggest — "
+    "offer 2 or 3 candidate projects (never more than 3) in `candidates`, each "
+    "with a short title, a one-sentence summary, a difficulty, and a rough "
+    "est_cost_usd. Keep your `agent_message` a short lead-in like 'Here are a "
+    "few ideas'.\n"
+    "- \"ready\": you understand the project well enough to write the full plan. "
+    "Leave candidates empty.\n"
+    "Put your natural-language message in `agent_message` every turn. Move to "
+    "\"ready\" as soon as you reasonably can — this is a short conversation, not "
+    "an open thread. Never propose more than 3 candidates."
+)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 7.1 Finalize — emit the §6 spec (mock 1e → 1f)
 # ─────────────────────────────────────────────────────────────────────────────

@@ -347,5 +347,263 @@ class ClientTests(unittest.TestCase):
             c.generate_spec(system="s", messages=[])
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Generation engine + routes (offline, against a fake ClaudeClient)
+# ─────────────────────────────────────────────────────────────────────────────
+from app.claude import generation  # noqa: E402
+from app.claude.client import get_claude_client  # noqa: E402
+from app.claude.generation import (  # noqa: E402
+    CandidateNotFound,
+    _CandidateDraft,
+    _TurnDraft,
+)
+from app.claude.session_store import SessionStore as _Store  # noqa: E402
+from app.claude.session_store import get_session_store  # noqa: E402
+from app.schemas.dtos import (  # noqa: E402
+    ClarifyTurn,
+    GenerateMessageCreate,
+    GenerateSessionCreate,
+    ProposeTurn,
+    ReadyTurn,
+)
+
+
+class FakeClaude:
+    """Stand-in for ClaudeClient — programmable, no network."""
+
+    def __init__(self, *, chat_text="Hi! What are we building?", turn=None, spec=None):
+        self.chat_text = chat_text
+        self.turn = turn
+        self.spec = spec
+        self.chat_error = None
+
+    def chat(self, *, system, messages, thinking=True, max_tokens=4096):
+        if self.chat_error:
+            raise self.chat_error
+        return self.chat_text
+
+    def parse(self, *, system, messages, output_format, max_tokens=2048):
+        return self.turn
+
+    def generate_spec(self, *, system, messages, max_tokens=16000, max_retries=1):
+        return self.spec
+
+
+def _new_session(store, claude):
+    body = GenerateSessionCreate(
+        description="a small bookshelf",
+        skill_level=SkillLevel.beginner,
+        budget_band=BudgetBand.under_30,
+    )
+    return generation.start_session(store, claude, body)
+
+
+class EngineTests(unittest.TestCase):
+    def setUp(self):
+        self.store = _Store()
+        self.claude = FakeClaude()
+
+    def test_start_session_returns_opening(self):
+        start = _new_session(self.store, self.claude)
+        self.assertTrue(start.session_id)
+        self.assertEqual(start.agent_message, "Hi! What are we building?")
+        s = self.store.get(start.session_id)
+        self.assertEqual([m["role"] for m in s.messages], ["user", "assistant"])
+
+    def test_start_session_blank_description_seeds_surprise(self):
+        body = GenerateSessionCreate(
+            description="   ",
+            skill_level=SkillLevel.handy,
+            budget_band=BudgetBand.over_75,
+        )
+        start = generation.start_session(self.store, self.claude, body)
+        seed = self.store.get(start.session_id).messages[0]["content"]
+        self.assertIn("surprise me", seed.lower())
+
+    def test_clarifying_turn(self):
+        start = _new_session(self.store, self.claude)
+        self.claude.turn = _TurnDraft(kind="clarifying", agent_message="How wide?")
+        turn = generation.send_message(
+            self.store, self.claude, start.session_id,
+            GenerateMessageCreate(message="around 24 inches"),
+        )
+        self.assertIsInstance(turn, ClarifyTurn)
+        self.assertEqual(turn.kind, "clarifying")
+        self.assertEqual(turn.agent_message, "How wide?")
+        self.assertEqual(turn.session_id, start.session_id)
+        self.assertIsNotNone(turn.progress)
+
+    def test_proposing_turn_assigns_ids_and_stores(self):
+        start = _new_session(self.store, self.claude)
+        self.claude.turn = _TurnDraft(
+            kind="proposing",
+            agent_message="Here are a few ideas:",
+            candidates=[
+                _CandidateDraft(title="Spice rack", summary="A small wall rack."),
+                _CandidateDraft(title="Phone stand", summary="A desk phone stand."),
+            ],
+        )
+        turn = generation.send_message(
+            self.store, self.claude, start.session_id,
+            GenerateMessageCreate(message="surprise me"),
+        )
+        self.assertIsInstance(turn, ProposeTurn)
+        self.assertEqual([c.id for c in turn.candidates], ["c1", "c2"])
+        s = self.store.get(start.session_id)
+        self.assertEqual(set(s.candidates), {"c1", "c2"})
+
+    def test_proposing_with_no_candidates_falls_back_to_clarify(self):
+        start = _new_session(self.store, self.claude)
+        self.claude.turn = _TurnDraft(kind="proposing", agent_message="Hmm", candidates=[])
+        turn = generation.send_message(
+            self.store, self.claude, start.session_id,
+            GenerateMessageCreate(message="dunno"),
+        )
+        self.assertIsInstance(turn, ClarifyTurn)
+
+    def test_candidate_cap_of_three(self):
+        start = _new_session(self.store, self.claude)
+        self.claude.turn = _TurnDraft(
+            kind="proposing",
+            agent_message="Ideas:",
+            candidates=[_CandidateDraft(title=f"P{i}", summary="s") for i in range(5)],
+        )
+        turn = generation.send_message(
+            self.store, self.claude, start.session_id,
+            GenerateMessageCreate(message="surprise me"),
+        )
+        self.assertEqual(len(turn.candidates), 3)
+
+    def test_select_candidate_resolves(self):
+        start = _new_session(self.store, self.claude)
+        self.claude.turn = _TurnDraft(
+            kind="proposing",
+            agent_message="Ideas:",
+            candidates=[_CandidateDraft(title="Spice rack", summary="A small rack.")],
+        )
+        generation.send_message(
+            self.store, self.claude, start.session_id,
+            GenerateMessageCreate(message="surprise me"),
+        )
+        # Now select c1; the model replies ready.
+        self.claude.turn = _TurnDraft(kind="ready", agent_message="Great, ready to build!")
+        turn = generation.send_message(
+            self.store, self.claude, start.session_id,
+            GenerateMessageCreate(select_candidate_id="c1"),
+        )
+        self.assertIsInstance(turn, ReadyTurn)
+        s = self.store.get(start.session_id)
+        self.assertIn("Spice rack", s.messages[-2]["content"])  # the resolved user turn
+
+    def test_select_unknown_candidate_raises(self):
+        start = _new_session(self.store, self.claude)
+        with self.assertRaises(CandidateNotFound):
+            generation.send_message(
+                self.store, self.claude, start.session_id,
+                GenerateMessageCreate(select_candidate_id="nope"),
+            )
+
+    def test_ready_progress_is_full(self):
+        start = _new_session(self.store, self.claude)
+        self.claude.turn = _TurnDraft(kind="ready", agent_message="Ready!")
+        turn = generation.send_message(
+            self.store, self.claude, start.session_id,
+            GenerateMessageCreate(message="go"),
+        )
+        self.assertEqual(turn.progress.current, turn.progress.total)
+
+    def test_send_message_unknown_session_raises(self):
+        from app.claude.session_store import SessionNotFound
+        with self.assertRaises(SessionNotFound):
+            generation.send_message(
+                self.store, self.claude, "nope",
+                GenerateMessageCreate(message="hi"),
+            )
+
+    def test_finalize_returns_spec(self):
+        start = _new_session(self.store, self.claude)
+        self.claude.spec = ProjectSpec.model_validate(VALID_SPEC)
+        spec = generation.finalize(self.store, self.claude, start.session_id)
+        self.assertIsInstance(spec, ProjectSpec)
+        self.assertTrue(self.store.get(start.session_id).finalized)
+
+
+class RouteTests(unittest.TestCase):
+    """Endpoint-level tests via FastAPI TestClient with injected fakes."""
+
+    def setUp(self):
+        from fastapi.testclient import TestClient
+
+        from app.main import app
+
+        self.app = app
+        self.store = _Store()
+        self.claude = FakeClaude(spec=ProjectSpec.model_validate(VALID_SPEC))
+        app.dependency_overrides[get_session_store] = lambda: self.store
+        app.dependency_overrides[get_claude_client] = lambda: self.claude
+        self.client = TestClient(app)
+
+    def tearDown(self):
+        self.app.dependency_overrides.clear()
+
+    def _start(self):
+        return self.client.post(
+            "/generate/sessions",
+            json={"description": "a shelf", "skill_level": "beginner", "budget_band": "under_30"},
+        )
+
+    def test_start_then_message_then_finalize(self):
+        r = self._start()
+        self.assertEqual(r.status_code, 201)
+        sid = r.json()["session_id"]
+        self.assertTrue(r.json()["agent_message"])
+
+        self.claude.turn = _TurnDraft(kind="ready", agent_message="Ready to build!")
+        m = self.client.post(
+            f"/generate/sessions/{sid}/messages", json={"message": "24 inches, I have a drill"}
+        )
+        self.assertEqual(m.status_code, 200)
+        self.assertEqual(m.json()["kind"], "ready")
+
+        f = self.client.post(f"/generate/sessions/{sid}/finalize")
+        self.assertEqual(f.status_code, 200)
+        self.assertEqual(f.json()["project"]["module"], "mechanic")
+
+    def test_message_unknown_session_404(self):
+        self.claude.turn = _TurnDraft(kind="clarifying", agent_message="hi")
+        r = self.client.post("/generate/sessions/nope/messages", json={"message": "hi"})
+        self.assertEqual(r.status_code, 404)
+
+    def test_select_unknown_candidate_400(self):
+        sid = self._start().json()["session_id"]
+        r = self.client.post(
+            f"/generate/sessions/{sid}/messages", json={"select_candidate_id": "nope"}
+        )
+        self.assertEqual(r.status_code, 400)
+
+    def test_message_requires_exactly_one_field_422(self):
+        sid = self._start().json()["session_id"]
+        r = self.client.post(f"/generate/sessions/{sid}/messages", json={})
+        self.assertEqual(r.status_code, 422)
+
+    def test_upstream_failure_is_502(self):
+        self.claude.chat_error = ClaudeError("boom")
+        r = self._start()
+        self.assertEqual(r.status_code, 502)
+
+    def test_proposing_turn_shape(self):
+        sid = self._start().json()["session_id"]
+        self.claude.turn = _TurnDraft(
+            kind="proposing",
+            agent_message="Ideas:",
+            candidates=[_CandidateDraft(title="Rack", summary="a rack")],
+        )
+        r = self.client.post(f"/generate/sessions/{sid}/messages", json={"message": "surprise me"})
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertEqual(body["kind"], "proposing")
+        self.assertEqual(body["candidates"][0]["id"], "c1")
+
+
 if __name__ == "__main__":
     unittest.main()

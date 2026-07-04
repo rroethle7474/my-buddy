@@ -98,6 +98,43 @@ class ClaudeClient:
             )
         return text
 
+    # ── one structured turn (§7.1 clarify/propose/ready classification) ───────
+    def parse(
+        self,
+        *,
+        system: str,
+        messages: List[dict],
+        output_format: type,
+        max_tokens: int = 2048,
+    ):
+        """Return a validated instance of ``output_format`` (a Pydantic model).
+
+        Used for the structured turn decision on each /messages turn. No
+        thinking — the classification is simple and this keeps turns fast (the
+        finalize path likewise runs structured output without thinking).
+        """
+        try:
+            resp = self.client.messages.parse(
+                model=self.model,
+                max_tokens=max_tokens,
+                system=system,
+                messages=messages,
+                output_format=output_format,
+            )
+        except anthropic.APIError as exc:
+            raise ClaudeError(f"Claude structured call failed: {exc}") from exc
+
+        if getattr(resp, "stop_reason", None) == "refusal":
+            raise ClaudeError("Claude declined to respond to this request.")
+
+        parsed = getattr(resp, "parsed_output", None)
+        if parsed is None:
+            raise ClaudeError(
+                f"Claude returned no structured output (stop_reason="
+                f"{getattr(resp, 'stop_reason', None)})."
+            )
+        return parsed
+
     # ── finalize → validated §6 spec (§7.1) ──────────────────────────────────
     def generate_spec(
         self,
