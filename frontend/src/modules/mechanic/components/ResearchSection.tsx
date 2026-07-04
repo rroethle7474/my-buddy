@@ -53,9 +53,12 @@ export function ResearchSection({
    *  real (billed) web searches, so it must never re-run silently on load. */
   onRefresh?: () => void;
 }) {
-  const unfilled =
-    topics.length > 0 && topics.every((t) => t.resources.length === 0);
-  const showAction = !loading && onRefresh !== undefined && (error || unfilled);
+  // Any topic still without resources needs a retry path — not just the
+  // all-empty case. Under the chunked refresh (F1.4, Option B) a partial fill
+  // returns some topics filled and some empty, so gate on `some`, not `every`.
+  const anyUnfilled = topics.some((t) => t.resources.length === 0);
+  const someFilled = topics.some((t) => t.resources.length > 0);
+  const showAction = !loading && onRefresh !== undefined && (error || anyUnfilled);
 
   return (
     <section className="mech-section" id="research" aria-labelledby="research-h">
@@ -79,14 +82,16 @@ export function ResearchSection({
             <span>
               {error
                 ? "The resource search didn't make it through — it may be busy."
-                : "Resources haven't been gathered for this build yet."}
+                : someFilled
+                  ? "Some topics still need resources."
+                  : "Resources haven't been gathered for this build yet."}
             </span>
             <button
               type="button"
               className="mech-btn mech-btn--primary mech-btn--sm"
               onClick={onRefresh}
             >
-              {error ? "Try again" : "Find resources"}
+              {error ? "Try again" : someFilled ? "Find the rest" : "Find resources"}
             </button>
           </div>
         )}

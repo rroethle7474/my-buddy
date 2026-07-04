@@ -21,10 +21,17 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..schemas.spec import ProjectSpec, ResearchResource
 from . import prompts
-from .client import ClaudeClient
+from .client import ClaudeClient, ClaudeError
 from .spec_gate import SpecValidationError, extract_json
 
 _ALLOWED_TYPES = {"video", "article"}
+
+# Topics per web-search call. Chunking (vs. one call for all topics) gives
+# per-chunk failure tolerance so a single hung/failed search doesn't lose every
+# topic — the all-or-nothing loss confirmed during the 2026-07-04 incident.
+# Option B (Ryan 2026-07-04): pairs cap the blast radius while keeping the cost
+# multiplier modest (~2× for a typical 4-topic spec).
+_CHUNK_SIZE = 2
 
 
 # ── Tolerant drafts for parsing the model's JSON (extra fields ignored) ───────
@@ -52,24 +59,60 @@ def run_research(
     topics: Iterable[str],
     *,
     max_per_topic: int = 2,
+    chunk_size: int = _CHUNK_SIZE,
 ) -> Dict[str, List[ResearchResource]]:
     """Return a ``{topic: [ResearchResource, ...]}`` map for the given topics.
 
-    Runs one web-search pass, defensively parses the JSON, and maps results back
-    to the input topics (by exact text, else positionally). Never raises for a
-    bad/empty model response — a topic simply gets an empty list.
+    Runs the web-search pass in **chunks of ``chunk_size`` topics** (default 2)
+    with **per-chunk tolerance**: each chunk is an independent ``web_search``
+    call, so one chunk failing (timeout / deadline / API error) costs only its
+    own topics — the rest still fill and persist. A topic in a failed chunk, or
+    one the search found nothing for, gets an empty list. It only raises
+    ``ClaudeError`` when *every* chunk fails, so the endpoint's 502 path is kept
+    for a total outage but a partial result returns 200 (Option B, Ryan
+    2026-07-04). Within a chunk, results map back by exact topic text, else
+    positionally; a garbage/empty model response is not a failure, just empties.
+
+    Cost / latency: N topics → ``ceil(N / chunk_size)`` sequential ``web_search``
+    calls (≈2× the single-call cost for a typical 4-topic spec — accepted by
+    Ryan in exchange for killing the all-or-nothing loss). Each call keeps its
+    own bounds (``web_search``'s 90s round / 180s deadline), so the worst case is
+    ``ceil(N / chunk_size) × 180s`` — e.g. ~360s for 4 topics if both chunks run
+    to their full deadline (real calls are far shorter).
     """
     topics = list(topics)
     if not topics:
         return {}
 
-    text = client.web_search(
-        system=prompts.RESEARCH_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompts.build_research_user_prompt(topics)}],
-    )
+    step = max(1, chunk_size)
+    chunks = [topics[i : i + step] for i in range(0, len(topics), step)]
+    result: Dict[str, List[ResearchResource]] = {}
+    failed_chunks = 0
 
-    drafts = _parse_topic_drafts(text)
-    return _map_to_topics(topics, drafts, max_per_topic)
+    for chunk in chunks:
+        try:
+            text = client.web_search(
+                system=prompts.RESEARCH_SYSTEM_PROMPT,
+                messages=[
+                    {"role": "user", "content": prompts.build_research_user_prompt(chunk)}
+                ],
+            )
+        except ClaudeError:
+            # Tolerated: this chunk's topics stay empty; the other chunks proceed.
+            failed_chunks += 1
+            for topic in chunk:
+                result[topic] = []
+            continue
+
+        drafts = _parse_topic_drafts(text)
+        result.update(_map_to_topics(chunk, drafts, max_per_topic))
+
+    if failed_chunks == len(chunks):
+        # Every chunk failed → a real upstream outage; surface it so the endpoint
+        # returns 502 (rather than persisting an all-empty "success").
+        raise ClaudeError(f"All {len(chunks)} research search chunk(s) failed.")
+
+    return result
 
 
 def apply_research_to_spec(

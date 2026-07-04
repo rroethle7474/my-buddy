@@ -54,12 +54,16 @@ class _FakeStorage:
 PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 24
 
 
-def _photo(storage_key: str = "projects/2/photos/abc123.png") -> PhotoRow:
+def _photo(
+    storage_key: str = "projects/2/photos/abc123.png",
+    content_type: str | None = None,
+) -> PhotoRow:
     return PhotoRow(
         id=1,
         project_id=2,
         step_id=None,
         storage_key=storage_key,
+        content_type=content_type,
         caption="a caption",
         created_at=datetime.now(timezone.utc),
     )
@@ -98,6 +102,36 @@ class PhotoContentRouteTests(unittest.TestCase):
         r = self.client.get("/photos/1/content")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.headers["content-type"], "application/octet-stream")
+
+    def test_stored_content_type_wins_over_suffix(self) -> None:
+        # A specific persisted content_type beats what the suffix would sniff.
+        self.session._photo = _photo(
+            storage_key="projects/2/photos/abc123.png", content_type="image/webp"
+        )
+        r = self.client.get("/photos/1/content")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.headers["content-type"], "image/webp")
+
+    def test_generic_stored_type_falls_back_to_suffix(self) -> None:
+        # A generic octet-stream upload (browser sent no type) sniffs the suffix,
+        # which is more specific.
+        self.session._photo = _photo(
+            storage_key="projects/2/photos/abc123.png",
+            content_type="application/octet-stream",
+        )
+        r = self.client.get("/photos/1/content")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.headers["content-type"], "image/png")
+
+    def test_null_content_type_sniffs_suffix(self) -> None:
+        # Legacy rows (pre-migration) have content_type=None → suffix inference.
+        self.session._photo = _photo(
+            storage_key="projects/2/photos/abc123.jpg", content_type=None
+        )
+        self.storage._blobs = {"projects/2/photos/abc123.jpg": PNG_BYTES}
+        r = self.client.get("/photos/1/content")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.headers["content-type"], "image/jpeg")
 
     def test_route_is_not_in_openapi_schema(self) -> None:
         # include_in_schema=False → the byte route must NOT appear in the frozen

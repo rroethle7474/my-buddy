@@ -20,6 +20,7 @@ type ProjectSpec = components["schemas"]["ProjectSpec"];
 type MaterialUpdate = components["schemas"]["MaterialUpdate"];
 type ToolUpdate = components["schemas"]["ToolUpdate"];
 type StepUpdate = components["schemas"]["StepUpdate"];
+type ShopInventoryRead = components["schemas"]["ShopInventoryRead"];
 
 // --- Item-state PATCHes (§11, offline-queued-friendly). Each returns the single
 // updated entity (the exact delta), so the caller reconciles its cache by id
@@ -77,6 +78,18 @@ export async function upsertRetrospective(
     { params: { path: { project_id: projectId } }, body },
   );
   if (error || !data) throw new Error("Could not save your retrospective.");
+  return data;
+}
+
+/** POST /shop/inventory — teach "My Shop" a tool the user now owns (§8). Fired
+ *  when a tool is marked "I have this now" so future projects' shop diff sees it
+ *  as owned. The backend fuzzy-matches on tool_name and upserts, so repeated
+ *  calls for the same tool are idempotent (safe to replay / re-fire). */
+export async function addShopInventory(toolName: string): Promise<ShopInventoryRead> {
+  const { data, error } = await api.POST("/shop/inventory", {
+    body: { tool_name: toolName },
+  });
+  if (error || !data) throw new Error("Could not add that tool to My Shop.");
   return data;
 }
 
