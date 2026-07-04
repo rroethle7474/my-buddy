@@ -12,6 +12,10 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+# generated as a side effect of `uv run`; we use the uv-pip workflow
+# (`uv pip install -e ".[dev]"`), not `uv sync` — if we ever adopt the
+# lockfile workflow, remove this line and commit uv.lock instead
+uv.lock
 .venv/
 venv/
 env/
