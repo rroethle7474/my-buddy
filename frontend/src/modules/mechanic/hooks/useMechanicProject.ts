@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ProjectRead, RetrospectiveUpsert } from "../types";
 import {
+  addShopInventory,
   patchMaterial,
   patchStep,
   patchTool,
@@ -186,12 +187,22 @@ export function useMechanicProject(
       }));
       if (!live) return;
       patchTool(projectRef.current.id, toolId, { owned })
-        .then((updated) =>
+        .then((updated) => {
           applyBoth((p) => ({
             ...p,
             tools: p.tools.map((t) => (t.id === toolId ? updated : t)),
-          })),
-        )
+          }));
+          // §8: acquiring a tool ("I have this now") also teaches My Shop, so
+          // future projects' shop diff sees it as owned. Best-effort — the
+          // bucket move already persisted via the PATCH above; a failed shop
+          // write shouldn't undo it or alarm the user (the backend upserts, so
+          // it's replay-safe and self-heals next time the tool is marked owned).
+          if (owned && prev) {
+            addShopInventory(prev.name).catch((err) => {
+              console.warn("Could not add tool to My Shop inventory:", err);
+            });
+          }
+        })
         .catch(() => {
           if (prev) {
             applyBoth((p) => ({
