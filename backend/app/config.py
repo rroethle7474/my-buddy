@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # Anthropic SDK key — server-side only, never reaches the client (§7).
     anthropic_api_key: str = ""
 
+    # Claude model for generation + research (§7). Swappable without code changes.
+    anthropic_model: str = "claude-opus-4-8"
+
     # Storage adapter selection (§3 / D3). "local" volume now ▸ "r2" later.
     storage_backend: str = "local"
     storage_local_path: str = "/data/storage"

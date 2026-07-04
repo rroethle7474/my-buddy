@@ -2,7 +2,9 @@
 # Never commit real secrets (ANTHROPIC_API_KEY, DB creds, session secret).
 .env
 .env.*
-!.env.example          # DO track a template so agents know which vars exist
+# DO track the template so agents know which vars exist (inline comments
+# don't work in .gitignore — the negation below must be on its own line)
+!.env.example
 *.pem
 *.key
 

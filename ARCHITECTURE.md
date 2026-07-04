@@ -30,11 +30,11 @@ These are the only open calls. Everything else below is decided. Ryan: sign off 
 | # | Decision | Recommendation | Alternative |
 |---|----------|----------------|-------------|
 | D1 | **Backend language** | **✓ DECIDED: FastAPI (Python)** — locked. Lightweight, first-class Anthropic SDK, matches Ryan's personal-project stack | ~~.NET minimal API~~ — not chosen |
-| D2 | **Auth** | **Cloudflare Access at the edge** — zero auth code, email-gated, protects the whole app; app assumes requests are authenticated | App-level single-user login (JWT cookie) if you want the app self-contained |
-| D3 | **Image storage for v1** | **Hetzner volume mount** behind an S3-style abstraction, so a later swap to Cloudflare R2 (free tier, no egress fees) is a config change | Go straight to R2 now |
-| D4 | **In-app Claude generation in v1?** | **Yes — and now central.** The approved mocks (1d–1f, §16) are built entirely around the generate-via-chat flow, so generation is the **primary v1 experience**, not a deferred add-on. The import path (§7, §11) stays as a seed/test seam. | ~~Import-only for v1~~ — superseded by the mocks |
+| D2 | **Auth** | **✓ DECIDED: Cloudflare Access at the edge** — zero auth code, email-gated, protects the whole app; app assumes requests are authenticated. Local dev runs open. | ~~App-level single-user login (JWT cookie)~~ — not chosen |
+| D3 | **Image storage for v1** | **✓ DECIDED: Hetzner volume mount** behind an S3-style abstraction, so a later swap to Cloudflare R2 (free tier, no egress fees) is a config change | ~~Go straight to R2 now~~ — not chosen |
+| D4 | **In-app Claude generation in v1?** | **✓ DECIDED: Yes — and now central.** The approved mocks (1d–1f, §16) are built entirely around the generate-via-chat flow, so generation is the **primary v1 experience**, not a deferred add-on. The import path (§7, §11) stays as a seed/test seam. | ~~Import-only for v1~~ — superseded by the mocks |
 
-**Status:** D1 locked (FastAPI); stack confirmed (React / PostgreSQL, §3). The Claude Design mocks are folded in — see the new **§16 (Design & UI)**, which also revises the generation flow (§7.1) and endpoints (§11) to match the approved chat UX. **Still open:** D2 (auth) and D3 (storage). D4 now leans generation-in-v1 per the mocks — confirm.
+**Status:** All §2 decisions are closed (Ryan, 2026-07-03): D1 FastAPI · D2 Cloudflare Access · D3 volume-behind-adapter · D4 generation-in-v1. Stack confirmed (React / PostgreSQL, §3); the Claude Design mocks are folded in — see **§16 (Design & UI)**, which also revises the generation flow (§7.1) and endpoints (§11) to match the approved chat UX. Per-phase task decomposition, v1 scope, and agent assignments live in the bus `TASKS.md` (COORDINATION.md §3).
 
 ---
 
